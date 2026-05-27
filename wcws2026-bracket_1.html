@@ -1,0 +1,685 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>2026 WCWS Bracket</title>
+<meta name="description" content="Interactive 2026 Women's College World Series bracket — live scores auto-update!">
+<meta property="og:title" content="2026 WCWS Bracket — Live">
+<meta property="og:description" content="Live-updating bracket for the 2026 Women's College World Series. Pick your champion!">
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;800&family=Barlow:wght@400;500;600&display=swap');
+:root {
+  --bg:#0a0f1a; --surface:#131929; --surface2:#1c2640;
+  --border:rgba(255,255,255,0.08); --border2:rgba(255,255,255,0.16);
+  --accent:#c8a84b; --accent2:#e8c96a;
+  --green:#3db87a; --green-bg:rgba(61,184,122,0.13);
+  --live:#ff5f5f; --live-bg:rgba(255,95,95,0.12);
+  --text:#f0ece0; --text2:#8a94a8; --text3:#3a4558;
+  --fh:'Barlow Condensed',sans-serif; --fb:'Barlow',sans-serif;
+  --r:8px; --r2:12px;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{min-height:100%;background:var(--bg);color:var(--text);font-family:var(--fb)}
+
+/* HEADER */
+.hd{background:var(--surface);border-bottom:1px solid var(--border2);padding:12px 14px;position:sticky;top:0;z-index:100}
+.hd-inner{max-width:720px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.hd h1{font-family:var(--fh);font-size:21px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:var(--accent2);line-height:1}
+.hd p{font-size:11px;color:var(--text2);margin-top:2px;letter-spacing:.03em}
+.hd-right{display:flex;gap:7px;align-items:center;flex-shrink:0}
+.live-badge{font-family:var(--fh);font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;background:var(--live-bg);color:var(--live);border:1px solid rgba(255,95,95,.3);border-radius:20px;padding:3px 9px;display:none;align-items:center;gap:5px}
+.live-dot{width:6px;height:6px;border-radius:50%;background:var(--live);animation:pulse 1.2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+.live-badge.on{display:flex}
+.btn{font-family:var(--fh);font-size:12px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;padding:6px 13px;border-radius:var(--r);border:1px solid var(--border2);background:transparent;color:var(--text2);cursor:pointer;transition:all .15s;white-space:nowrap}
+.btn:hover{background:var(--surface2);color:var(--text);border-color:var(--border2)}
+.btn.ac{background:var(--accent);color:#0a0f1a;border-color:var(--accent)}
+.btn.ac:hover{background:var(--accent2)}
+
+/* MAIN */
+.main{max-width:720px;margin:0 auto;padding:14px 12px 80px}
+
+/* STATUS BAR */
+.status-bar{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;gap:8px;flex-wrap:wrap}
+.status-txt{font-size:12px;color:var(--text2);font-family:var(--fh);letter-spacing:.04em}
+.status-txt span{color:var(--green)}
+.status-txt.err span{color:var(--live)}
+.last-update{font-size:11px;color:var(--text3)}
+
+/* SECTION */
+.sec-label{font-family:var(--fh);font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--text3);padding:0 2px 7px}
+
+/* MATCHUP CARD */
+.matchup{background:var(--surface);border:1px solid var(--border);border-radius:var(--r2);overflow:hidden;margin-bottom:9px;position:relative}
+.matchup.live-game{border-color:rgba(255,95,95,.35)}
+.matchup.live-game::before{content:'● LIVE';position:absolute;top:0;right:0;font-family:var(--fh);font-size:9px;font-weight:700;letter-spacing:.08em;background:var(--live);color:#fff;padding:2px 7px;border-bottom-left-radius:6px}
+.match-tag{font-family:var(--fh);font-size:10px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--text3);padding:5px 10px 4px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center}
+.match-tag .tv{font-size:9px;color:var(--text3)}
+.team-row{display:flex;align-items:center;gap:0;padding:10px 10px;cursor:pointer;transition:background .12s;border:none;background:transparent;width:100%;text-align:left;color:var(--text)}
+.team-row+.team-row{border-top:1px solid var(--border)}
+.team-row:hover:not(:disabled){background:var(--surface2)}
+.team-row:disabled{cursor:default;opacity:.6}
+.seed{font-family:var(--fh);font-size:11px;font-weight:700;color:var(--text3);width:18px;flex-shrink:0;text-align:right;margin-right:8px;line-height:1}
+.tname{font-family:var(--fh);font-size:16px;font-weight:600;letter-spacing:.02em;line-height:1;flex:1}
+.tscore{font-family:var(--fh);font-size:15px;font-weight:700;color:var(--text2);margin-left:8px;min-width:20px;text-align:right}
+.tinning{font-size:10px;color:var(--text3);margin-left:4px}
+.tdot{width:7px;height:7px;border-radius:50%;flex-shrink:0;margin-left:7px}
+.team-row.winner{background:var(--green-bg)}
+.team-row.winner .tname{color:var(--green)}
+.team-row.winner .seed{color:var(--green);opacity:.7}
+.team-row.winner .tdot{background:var(--green)}
+.team-row.winner .tscore{color:var(--green)}
+.team-row.loser .tname{color:var(--text3)}
+.team-row.loser .seed{color:var(--text3);opacity:.5}
+.team-row.loser .tscore{color:var(--text3)}
+.auto-badge{font-size:9px;font-family:var(--fh);letter-spacing:.06em;text-transform:uppercase;color:var(--green);background:var(--green-bg);border-radius:4px;padding:1px 5px;margin-left:6px;font-weight:600}
+
+/* COLUMNS (desktop) */
+.cols{display:grid;grid-template-columns:repeat(3,1fr) 110px;gap:0;align-items:start}
+.col-hd{font-family:var(--fh);font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--text3);text-align:center;padding-bottom:9px}
+.col{display:flex;flex-direction:column}
+.champ-col{display:flex;flex-direction:column;align-items:center;padding:24px 0 0 5px}
+.champ-box{background:var(--surface);border:1.5px solid var(--accent);border-radius:var(--r2);padding:13px 10px;text-align:center;width:100%}
+.champ-icon{font-size:20px;margin-bottom:5px}
+.champ-lbl{font-size:9px;color:var(--text3);font-family:var(--fh);letter-spacing:.08em;text-transform:uppercase;margin-bottom:5px}
+.champ-name{font-family:var(--fh);font-size:15px;font-weight:800;color:var(--accent2);min-height:20px;letter-spacing:.04em;text-transform:uppercase}
+.col-match-pad{padding:0 5px}
+
+/* ADV INDICATOR */
+.adv-line{font-family:var(--fh);font-size:12px;font-weight:700;color:var(--green);text-transform:uppercase;letter-spacing:.04em;padding:18px 5px 0}
+
+/* SCHEDULE TABLE */
+.sched-wrap{margin-top:22px}
+.sched-hd{font-family:var(--fh);font-size:13px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--text2);margin-bottom:9px;padding:0 2px}
+.srow{display:flex;align-items:center;gap:10px;padding:8px 10px;background:var(--surface);border:1px solid var(--border);border-radius:var(--r);margin-bottom:6px}
+.sg{font-family:var(--fh);font-weight:700;color:var(--accent);font-size:12px;letter-spacing:.05em;flex-shrink:0;width:54px}
+.st{flex:1;font-family:var(--fh);font-size:13px;font-weight:600;color:var(--text)}
+.si{font-size:11px;color:var(--text2);flex-shrink:0;text-align:right;white-space:nowrap}
+
+/* SHARE INFO PANEL */
+.info-panel{background:var(--surface);border:1px solid var(--border2);border-radius:var(--r2);padding:14px 14px;margin-top:20px}
+.info-panel h3{font-family:var(--fh);font-size:15px;font-weight:700;letter-spacing:.05em;color:var(--accent2);margin-bottom:10px;text-transform:uppercase}
+.info-row{display:flex;gap:10px;margin-bottom:10px}
+.info-icon{font-size:18px;flex-shrink:0;margin-top:1px}
+.info-text strong{font-family:var(--fh);font-size:13px;font-weight:700;color:var(--text);text-transform:uppercase;letter-spacing:.04em;display:block;margin-bottom:2px}
+.info-text p{font-size:12px;color:var(--text2);line-height:1.5}
+.info-text a{color:var(--accent);text-decoration:none}
+.info-text a:hover{text-decoration:underline}
+.info-divider{height:1px;background:var(--border);margin:10px 0}
+
+/* TOAST */
+.toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%) translateY(80px);background:var(--green);color:#fff;font-family:var(--fh);font-size:13px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;padding:9px 20px;border-radius:999px;transition:transform .3s cubic-bezier(.34,1.56,.64,1);z-index:999;pointer-events:none;white-space:nowrap}
+.toast.show{transform:translateX(-50%) translateY(0)}
+
+/* MOBILE */
+@media(max-width:580px){
+  .cols{grid-template-columns:1fr}
+  .col-hd{text-align:left;padding-left:2px}
+  .champ-col{flex-direction:row;padding:0;gap:10px;align-items:center}
+  .champ-box{flex:1}
+  .col-match-pad{padding:0}
+  .hide-mob{display:none!important}
+  .mob-sec{font-family:var(--fh);font-size:12px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--accent);padding:12px 2px 7px;border-top:1px solid var(--border);display:block}
+  .adv-line{padding:10px 2px 0}
+  .info-row{flex-direction:column;gap:6px}
+}
+@media(min-width:581px){.mob-sec{display:none}}
+</style>
+</head>
+<body>
+
+<header class="hd">
+  <div class="hd-inner">
+    <div>
+      <h1>2026 WCWS Bracket</h1>
+      <p>Devon Park · Oklahoma City · May 28 – June 5</p>
+    </div>
+    <div class="hd-right">
+      <div class="live-badge" id="liveBadge"><span class="live-dot"></span>Live</div>
+      <button class="btn" onclick="resetBracket()">Reset</button>
+      <button class="btn ac" onclick="shareLink()">Share 🔗</button>
+    </div>
+  </div>
+</header>
+
+<div class="main">
+
+  <div class="status-bar">
+    <div class="status-txt" id="statusTxt"><span>Fetching live scores…</span></div>
+    <div class="last-update" id="lastUpdate"></div>
+  </div>
+
+  <div id="bracketA" style="margin-bottom:8px"></div>
+  <div id="bracketB" style="margin-bottom:8px"></div>
+  <div id="championship"></div>
+
+  <!-- SCHEDULE -->
+  <div class="sched-wrap">
+    <div class="sched-hd">Opening Round — May 28</div>
+    <div class="srow"><span class="sg">Game 1</span><span class="st">#3 Texas Tech vs #5 Miss. State</span><span class="si">12:00 PM ET · ESPN</span></div>
+    <div class="srow"><span class="sg">Game 2</span><span class="st">#1 Texas vs #2 Tennessee</span><span class="si">2:30 PM ET · ESPN</span></div>
+    <div class="srow"><span class="sg">Game 3</span><span class="st">#1 Alabama vs #2 UCLA</span><span class="si">7:00 PM ET · ESPN2</span></div>
+    <div class="srow"><span class="sg">Game 4</span><span class="st">#1 Nebraska vs #2 Arkansas</span><span class="si">9:30 PM ET · ESPN2</span></div>
+    <div class="sched-hd" style="margin-top:12px">Championship Finals</div>
+    <div class="srow"><span class="sg">Final G1</span><span class="st">TBD vs TBD</span><span class="si">Wed Jun 3 · 8 PM ET · ESPN</span></div>
+    <div class="srow"><span class="sg">Final G2</span><span class="st">TBD vs TBD</span><span class="si">Thu Jun 4 · 8 PM ET · ESPN</span></div>
+    <div class="srow"><span class="sg">Final G3*</span><span class="st">If necessary</span><span class="si">Fri Jun 5 · 8 PM ET · ESPN</span></div>
+  </div>
+
+  <!-- SHARE INFO PANEL -->
+  <div class="info-panel">
+    <h3>🔗 How sharing works</h3>
+    <div class="info-row">
+      <div class="info-icon">📁</div>
+      <div class="info-text">
+        <strong>Sharing the file</strong>
+        <p>You can send the downloaded HTML file directly via iMessage, email, or AirDrop. Anyone who receives it can open it in their browser — but it works locally on their device only. Each person gets an independent copy. There is no shared link.</p>
+      </div>
+    </div>
+    <div class="info-divider"></div>
+    <div class="info-row">
+      <div class="info-icon">🌐</div>
+      <div class="info-text">
+        <strong>Sharing a URL (recommended)</strong>
+        <p>To get a real shareable link, host this file for free on <a href="https://app.netlify.com/drop" target="_blank">Netlify Drop</a> — just drag and drop the file there. You'll get a link like <em>https://yourname.netlify.app</em> in about 60 seconds. Then use the <strong>Share 🔗</strong> button above — it encodes your exact picks into the URL so anyone who opens it sees your bracket.</p>
+      </div>
+    </div>
+    <div class="info-divider"></div>
+    <div class="info-row">
+      <div class="info-icon">📡</div>
+      <div class="info-text">
+        <strong>Live scores</strong>
+        <p>This bracket auto-fetches scores from ESPN every 60 seconds. Completed games lock in automatically. Manual picks still work for games not yet started. If the ESPN feed goes down, you can still pick manually.</p>
+      </div>
+    </div>
+  </div>
+
+  <div style="text-align:center;font-size:11px;color:var(--text3);padding:20px 0 6px">Tap a team to advance them · Texas is the defending champion · Live data via ESPN</div>
+</div>
+
+<div class="toast" id="toast">Link copied!</div>
+
+<script>
+// ── TEAM DATA ──
+const TEAMS = {
+  textech:  {id:'textech',  seed:3, name:'Texas Tech',  abbr:'TTU',  espn:'texas-tech'},
+  msstate:  {id:'msstate',  seed:5, name:'Miss. State', abbr:'MSU',  espn:'mississippi-st'},
+  texas:    {id:'texas',    seed:1, name:'Texas',       abbr:'TEX',  espn:'texas'},
+  tennessee:{id:'tennessee',seed:2, name:'Tennessee',   abbr:'TENN', espn:'tennessee'},
+  alabama:  {id:'alabama',  seed:1, name:'Alabama',     abbr:'ALA',  espn:'alabama'},
+  ucla:     {id:'ucla',     seed:2, name:'UCLA',        abbr:'UCLA', espn:'ucla'},
+  nebraska: {id:'nebraska', seed:1, name:'Nebraska',    abbr:'NEB',  espn:'nebraska'},
+  arkansas: {id:'arkansas', seed:2, name:'Arkansas',    abbr:'ARK',  espn:'arkansas'},
+};
+
+// Bracket structure: Bracket A (games 1,2 → sf_a), Bracket B (games 3,4 → sf_b) → champ
+const MATCHES = {
+  g1:   {teams:['textech','msstate'], label:'Game 1',         tv:'ESPN',  bracket:'A'},
+  g2:   {teams:['texas','tennessee'], label:'Game 2',         tv:'ESPN',  bracket:'A'},
+  sf_a: {teams:[null,null],           label:'Bracket A Final',tv:'ESPN',  bracket:'A', semifinal:true},
+  g3:   {teams:['alabama','ucla'],    label:'Game 3',         tv:'ESPN2', bracket:'B'},
+  g4:   {teams:['nebraska','arkansas'],label:'Game 4',        tv:'ESPN2', bracket:'B'},
+  sf_b: {teams:[null,null],           label:'Bracket B Final',tv:'ESPN2', bracket:'B', semifinal:true},
+  champ:{teams:[null,null],           label:'Championship',   tv:'ESPN',  championship:true},
+};
+
+// State
+let picks = {};      // matchId → teamId (manual or auto)
+let autoWins = {};   // matchId → teamId (from ESPN)
+let liveScores = {}; // matchId → {t1score, t2score, inning, status}
+let lastFetch = null;
+let anyLive = false;
+
+function teamById(id){ return id ? TEAMS[id] : null; }
+function getWin(id){ return autoWins[id] || picks[id] || null; }
+
+// ── PICK ──
+function pick(matchId, teamId) {
+  // Don't allow manual override of auto-confirmed games
+  if (autoWins[matchId]) return;
+  picks[matchId] = teamId;
+  propagatePicks();
+  save();
+  render();
+}
+
+function propagatePicks() {
+  const wG1 = getWin('g1'), wG2 = getWin('g2');
+  const wG3 = getWin('g3'), wG4 = getWin('g4');
+  if (!wG1 || !wG2) { if (!autoWins['sf_a']) delete picks['sf_a']; }
+  if (!wG3 || !wG4) { if (!autoWins['sf_b']) delete picks['sf_b']; }
+  const wSFA = getWin('sf_a'), wSFB = getWin('sf_b');
+  if (!wSFA || !wSFB) { if (!autoWins['champ']) delete picks['champ']; }
+}
+
+function resetBracket() {
+  picks = {};
+  // Keep autoWins — don't clear live data on reset
+  save();
+  render();
+}
+
+// ── SAVE / LOAD URL ──
+function save() {
+  const p = new URLSearchParams();
+  Object.entries(picks).forEach(([k,v])=>{ if(v) p.set(k,v); });
+  history.replaceState(null,'', p.toString() ? '?'+p.toString() : location.pathname);
+}
+function load() {
+  const p = new URLSearchParams(location.search);
+  p.forEach((v,k)=>{ picks[k]=v; });
+}
+
+// ── SHARE ──
+function shareLink() {
+  const url = location.href;
+  if (navigator.share) {
+    navigator.share({title:'My 2026 WCWS Bracket', text:'Check out my 2026 WCWS picks!', url});
+  } else if (navigator.clipboard) {
+    navigator.clipboard.writeText(url).then(()=>showToast('Link copied!'));
+  } else {
+    prompt('Copy your bracket link:', url);
+  }
+}
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'), 2400);
+}
+
+// ── ESPN LIVE FETCH ──
+// Softball on ESPN: sport=softball, league=college-softball
+const ESPN_URL = 'https://site.api.espn.com/apis/site/v2/sports/softball/college-softball/scoreboard?groups=90&limit=50';
+// WCWS group id for college softball = 90 (postseason/tournament)
+
+const NAME_MAP = {
+  'texas tech':'textech', 'mississippi state':'msstate', 'miss. state':'msstate',
+  'texas':'texas', 'tennessee':'tennessee',
+  'alabama':'alabama', 'ucla':'ucla',
+  'nebraska':'nebraska', 'arkansas':'arkansas',
+};
+
+function normName(n) {
+  if (!n) return '';
+  const s = n.toLowerCase().trim();
+  for (const [k,v] of Object.entries(NAME_MAP)) {
+    if (s.includes(k)) return v;
+  }
+  return s;
+}
+
+function matchTeamsToGame(t1id, t2id) {
+  // Find which matchId these two teams belong to
+  for (const [mid, m] of Object.entries(MATCHES)) {
+    if (!m.teams[0] || !m.teams[1]) continue;
+    const mt = m.teams;
+    if ((mt[0]===t1id&&mt[1]===t2id)||(mt[0]===t2id&&mt[1]===t1id)) return mid;
+    // Also check via semifinal propagation
+  }
+  return null;
+}
+
+async function fetchScores() {
+  try {
+    const resp = await fetch(ESPN_URL, {cache:'no-cache'});
+    if (!resp.ok) throw new Error('ESPN ' + resp.status);
+    const data = await resp.json();
+
+    const events = data.events || [];
+    let foundAny = false;
+    let liveCount = 0;
+
+    // Reset live scores for this pass
+    const newLive = {};
+    const newAutoWins = {...autoWins};
+
+    for (const ev of events) {
+      const comp = ev.competitions?.[0];
+      if (!comp) continue;
+      const competitors = comp.competitors || [];
+      if (competitors.length < 2) continue;
+
+      const c0 = competitors[0], c1 = competitors[1];
+      const n0 = normName(c0.team?.displayName || c0.team?.name || '');
+      const n1 = normName(c1.team?.displayName || c1.team?.name || '');
+      if (!n0 || !n1) continue;
+
+      // Find which team ids these are
+      const id0 = TEAMS[n0] ? n0 : null;
+      const id1 = TEAMS[n1] ? n1 : null;
+      if (!id0 && !id1) continue;
+
+      const status = comp.status?.type?.name || '';
+      const completed = comp.status?.type?.completed || false;
+      const inProgress = status === 'STATUS_IN_PROGRESS';
+      const score0 = parseInt(c0.score) || 0;
+      const score1 = parseInt(c1.score) || 0;
+      const period = comp.status?.period || '';
+      const clock = comp.status?.displayClock || '';
+      const inning = period ? `Inn ${period}` : '';
+
+      // Map home/away: ESPN c0 = home, c1 = away typically
+      // Try to find matchId from known pairings first
+      let mid = null;
+      if (id0 && id1) mid = matchTeamsToGame(id0, id1);
+
+      // If not found by static map, try semifinal slots (teams filled in by propagation)
+      if (!mid && (id0||id1)) {
+        for (const [mkey, m] of Object.entries(MATCHES)) {
+          if (!m.semifinal && !m.championship) continue;
+          const wA = getWin(mkey === 'sf_a' ? 'g1' : mkey === 'sf_b' ? 'g3' : 'sf_a');
+          const wB = getWin(mkey === 'sf_a' ? 'g2' : mkey === 'sf_b' ? 'g4' : 'sf_b');
+          if (!wA || !wB) continue;
+          if ((wA===id0&&wB===id1)||(wA===id1&&wB===id0)) { mid = mkey; break; }
+        }
+      }
+
+      if (!mid) continue;
+      foundAny = true;
+
+      const m = MATCHES[mid];
+      // Figure out which team is t1 in our structure
+      let t1id, t2id, s1, s2;
+      if (!m.semifinal && !m.championship) {
+        t1id = m.teams[0]; t2id = m.teams[1];
+      } else {
+        t1id = id0; t2id = id1;
+      }
+      // Align scores
+      if (id0 === t1id) { s1=score0; s2=score1; }
+      else { s1=score1; s2=score0; }
+
+      newLive[mid] = { s1, s2, inning, status, live: inProgress, final: completed };
+
+      if (inProgress) liveCount++;
+
+      if (completed) {
+        // Determine winner
+        const winner = score0 > score1 ? id0 : id1;
+        if (winner && !newAutoWins[mid]) {
+          newAutoWins[mid] = winner;
+          // Cascade: if this was g1 or g2, sf_a teams update; g3/g4 → sf_b
+          // championship teams update when sf_a/sf_b done
+        }
+      }
+    }
+
+    liveScores = newLive;
+    autoWins = newAutoWins;
+    anyLive = liveCount > 0;
+    lastFetch = new Date();
+
+    // Status bar
+    const sb = document.getElementById('statusTxt');
+    const lb = document.getElementById('liveBadge');
+    if (foundAny) {
+      if (anyLive) {
+        sb.className='status-txt'; sb.innerHTML='<span>Live scores updating every 60s</span>';
+        lb.classList.add('on');
+      } else {
+        sb.className='status-txt'; sb.innerHTML='<span>ESPN data loaded</span> · Auto-refreshing';
+        lb.classList.remove('on');
+      }
+    } else {
+      sb.className='status-txt err'; sb.innerHTML='<span>No WCWS games found yet</span> · Manual picks active';
+      lb.classList.remove('on');
+    }
+    document.getElementById('lastUpdate').textContent = 'Updated ' + lastFetch.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'});
+
+    render();
+  } catch(e) {
+    const sb = document.getElementById('statusTxt');
+    sb.className='status-txt err'; sb.innerHTML='<span>ESPN feed unavailable</span> · Manual picks active';
+    document.getElementById('lastUpdate').textContent = 'Failed ' + new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
+    render();
+  }
+}
+
+// ── RENDER ──
+function mkMatchup(mid) {
+  const m = MATCHES[mid];
+  const w = getWin(mid);
+  const auto = !!autoWins[mid];
+  const live = liveScores[mid];
+
+  // Resolve teams
+  let t1id, t2id;
+  if (m.semifinal) {
+    const map = {sf_a:['g1','g2'], sf_b:['g3','g4']};
+    const [f1,f2] = map[mid] || [];
+    t1id = getWin(f1); t2id = getWin(f2);
+  } else if (m.championship) {
+    t1id = getWin('sf_a'); t2id = getWin('sf_b');
+  } else {
+    t1id = m.teams[0]; t2id = m.teams[1];
+  }
+
+  const t1 = teamById(t1id), t2 = teamById(t2id);
+
+  const wrap = document.createElement('div');
+  wrap.className = 'matchup' + (live?.live ? ' live-game' : '');
+
+  // Tag row
+  const tag = document.createElement('div');
+  tag.className = 'match-tag';
+  tag.innerHTML = `<span>${m.label}</span><span class="tv">${m.tv || ''}</span>`;
+  wrap.appendChild(tag);
+
+  function mkRow(team, tId, score, isWinner, isLoser, inning) {
+    const btn = document.createElement('button');
+    btn.className = 'team-row' + (isWinner?' winner':'') + (isLoser?' loser':'');
+    if (!team) {
+      btn.disabled = true;
+      btn.innerHTML = `<span class="seed"></span><span class="tname" style="color:var(--text3)">TBD</span>`;
+    } else {
+      btn.innerHTML = `<span class="seed">${team.seed||''}</span><span class="tname">${team.name}</span>${score!=null?`<span class="tscore">${score}</span>`:''}${live?.live&&inning?`<span class="tinning">${inning}</span>`:''}${auto&&isWinner?`<span class="auto-badge">Official</span>`:''}<span class="tdot" style="${isWinner?'':'opacity:0'}"></span>`;
+      if (!auto) btn.onclick = () => pick(mid, tId);
+      else btn.disabled = true;
+    }
+    return btn;
+  }
+
+  const t1won = w === t1id, t2won = w === t2id;
+  const decided = !!(t1won || t2won);
+
+  wrap.appendChild(mkRow(t1, t1id, live?.s1, t1won, decided&&t2won, live?.inning));
+  wrap.appendChild(mkRow(t2, t2id, live?.s2, t2won, decided&&t1won, live?.inning));
+
+  if (!auto && !t1 && !t2) {
+    const ph = document.createElement('div');
+    ph.style = 'font-size:12px;color:var(--text3);padding:6px 10px 8px;font-family:var(--fh)';
+    ph.textContent = 'Pick semifinal winners above first';
+    wrap.appendChild(ph);
+    wrap.querySelector('button').remove();
+    wrap.querySelector('button').remove();
+    wrap.appendChild(ph);
+  }
+
+  return wrap;
+}
+
+function pad(el) {
+  const d = document.createElement('div');
+  d.className = 'col-match-pad';
+  d.appendChild(el);
+  return d;
+}
+
+function secLabel(txt) {
+  const d = document.createElement('div');
+  d.className = 'mob-sec'; d.textContent = txt;
+  return d;
+}
+
+function advLine(teamId) {
+  const t = teamById(teamId);
+  const d = document.createElement('div');
+  d.className = 'adv-line';
+  d.textContent = t ? `#${t.seed} ${t.name} →` : '';
+  return d;
+}
+
+const isMob = () => window.innerWidth <= 580;
+
+function renderBracketA() {
+  const el = document.getElementById('bracketA');
+  el.innerHTML = '';
+  const mob = isMob();
+
+  const wG1 = getWin('g1'), wG2 = getWin('g2'), wSFA = getWin('sf_a');
+
+  if (mob) {
+    el.appendChild(secLabel('Bracket A — Round 1'));
+    el.appendChild(mkMatchup('g1'));
+    el.appendChild(mkMatchup('g2'));
+    if (wG1 && wG2) {
+      el.appendChild(secLabel('Bracket A — Semifinals'));
+      el.appendChild(mkMatchup('sf_a'));
+    }
+  } else {
+    const secLbl = document.createElement('div');
+    secLbl.className = 'sec-label'; secLbl.textContent = 'Bracket A';
+    el.appendChild(secLbl);
+
+    const cols = document.createElement('div'); cols.className = 'cols';
+
+    // R1
+    const c1 = document.createElement('div'); c1.className = 'col';
+    c1.innerHTML = '<div class="col-hd">Round 1</div>';
+    c1.appendChild(pad(mkMatchup('g1')));
+    c1.appendChild(pad(mkMatchup('g2')));
+    cols.appendChild(c1);
+
+    // SF
+    const c2 = document.createElement('div'); c2.className = 'col';
+    c2.innerHTML = '<div class="col-hd">Semifinals</div>';
+    if (wG1 && wG2) c2.appendChild(pad(mkMatchup('sf_a')));
+    else { const ph=document.createElement('div');ph.style='height:88px';c2.appendChild(ph); }
+    cols.appendChild(c2);
+
+    // Adv
+    const c3 = document.createElement('div'); c3.className = 'col';
+    c3.innerHTML = '<div class="col-hd">→ Finals</div>';
+    if (wSFA) c3.appendChild(advLine(wSFA));
+    cols.appendChild(c3);
+
+    const c4 = document.createElement('div'); c4.className = 'col'; cols.appendChild(c4);
+    el.appendChild(cols);
+  }
+}
+
+function renderBracketB() {
+  const el = document.getElementById('bracketB');
+  el.innerHTML = '';
+  const mob = isMob();
+
+  const wG3 = getWin('g3'), wG4 = getWin('g4'), wSFB = getWin('sf_b');
+
+  if (mob) {
+    el.appendChild(secLabel('Bracket B — Round 1'));
+    el.appendChild(mkMatchup('g3'));
+    el.appendChild(mkMatchup('g4'));
+    if (wG3 && wG4) {
+      el.appendChild(secLabel('Bracket B — Semifinals'));
+      el.appendChild(mkMatchup('sf_b'));
+    }
+  } else {
+    const secLbl = document.createElement('div');
+    secLbl.className = 'sec-label'; secLbl.textContent = 'Bracket B';
+    el.appendChild(secLbl);
+
+    const cols = document.createElement('div'); cols.className = 'cols';
+
+    const c1 = document.createElement('div'); c1.className = 'col';
+    c1.innerHTML = '<div class="col-hd">Round 1</div>';
+    c1.appendChild(pad(mkMatchup('g3')));
+    c1.appendChild(pad(mkMatchup('g4')));
+    cols.appendChild(c1);
+
+    const c2 = document.createElement('div'); c2.className = 'col';
+    c2.innerHTML = '<div class="col-hd">Semifinals</div>';
+    if (wG3 && wG4) c2.appendChild(pad(mkMatchup('sf_b')));
+    else { const ph=document.createElement('div');ph.style='height:88px';c2.appendChild(ph); }
+    cols.appendChild(c2);
+
+    const c3 = document.createElement('div'); c3.className = 'col';
+    c3.innerHTML = '<div class="col-hd">→ Finals</div>';
+    if (wSFB) c3.appendChild(advLine(wSFB));
+    cols.appendChild(c3);
+
+    const c4 = document.createElement('div'); c4.className = 'col'; cols.appendChild(c4);
+    el.appendChild(cols);
+  }
+}
+
+function renderChamp() {
+  const el = document.getElementById('championship');
+  el.innerHTML = '';
+  const mob = isMob();
+  const wSFA = getWin('sf_a'), wSFB = getWin('sf_b');
+  const wChamp = getWin('champ');
+
+  if (!wSFA && !wSFB) {
+    el.innerHTML = '<p style="font-size:12px;color:var(--text3);padding:4px 2px 0">Pick your semifinal winners to unlock the championship matchup.</p>';
+    return;
+  }
+
+  if (mob) {
+    el.appendChild(secLabel('Championship Series'));
+    if (wSFA && wSFB) {
+      el.appendChild(mkMatchup('champ'));
+      if (wChamp) {
+        const t = teamById(wChamp);
+        const cb = document.createElement('div');
+        cb.className = 'champ-box'; cb.style.margin = '10px 0 0';
+        cb.innerHTML = `<div class="champ-icon">🏆</div><div class="champ-lbl">2026 Champion</div><div class="champ-name">${t?`#${t.seed} ${t.name}`:'—'}</div>`;
+        el.appendChild(cb);
+      }
+    } else {
+      const ph = document.createElement('p');
+      ph.style='font-size:12px;color:var(--text3);padding:4px 2px'; ph.textContent='Waiting for both bracket winners…';
+      el.appendChild(ph);
+    }
+  } else {
+    const secLbl = document.createElement('div');
+    secLbl.className = 'sec-label'; secLbl.textContent = 'Championship Series';
+    el.appendChild(secLbl);
+
+    const cols = document.createElement('div'); cols.className = 'cols';
+
+    const c1 = document.createElement('div'); c1.className = 'col';
+    c1.innerHTML = '<div class="col-hd">Championship</div>';
+    if (wSFA && wSFB) c1.appendChild(pad(mkMatchup('champ')));
+    else { const ph=document.createElement('p');ph.style='font-size:12px;color:var(--text3);padding:6px 5px';ph.textContent='Awaiting bracket winners';c1.appendChild(ph); }
+    cols.appendChild(c1);
+
+    cols.appendChild(document.createElement('div'));
+    cols.appendChild(document.createElement('div'));
+
+    const cc = document.createElement('div'); cc.className = 'champ-col';
+    cc.innerHTML = '<div class="col-hd" style="text-align:center">Champion</div>';
+    const t = teamById(wChamp);
+    const cb = document.createElement('div'); cb.className = 'champ-box';
+    cb.innerHTML = `<div class="champ-icon">🏆</div><div class="champ-lbl">2026 Champion</div><div class="champ-name">${t?`#${t.seed} ${t.name}`:'—'}</div>`;
+    cc.appendChild(cb);
+    cols.appendChild(cc);
+    el.appendChild(cols);
+  }
+}
+
+function render() {
+  renderBracketA();
+  renderBracketB();
+  renderChamp();
+}
+
+// ── INIT ──
+load();
+render();
+fetchScores();
+setInterval(fetchScores, 60000);
+window.addEventListener('resize', render);
+</script>
+</body>
+</html>

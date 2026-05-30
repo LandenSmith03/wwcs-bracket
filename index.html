@@ -350,6 +350,13 @@ html, body { min-height: 100%; background: var(--off); color: var(--text); font-
     <div><span class="status-txt" id="statusTxt"><span class="hi">Loading scores…</span></span><span class="src-badge" id="srcBadge"></span></div>
     <div class="last-up" id="lastUp"></div>
   </div>
+  <div id="viewingBar" style="display:none;background:var(--navy);color:var(--white);padding:13px 16px;border-radius:var(--r2);margin-bottom:10px;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px">
+    <div>
+      <div style="font-family:'Bebas Neue',var(--fh);font-size:22px;letter-spacing:.1em" id="viewingNameEl"></div>
+      <div style="font-family:var(--fh);font-size:11px;opacity:.65;margin-top:2px" id="viewingScoreEl"></div>
+    </div>
+    <button class="btn white" onclick="closeViewBracket()">&#8592; Back to Group</button>
+  </div>
   <div class="banner" id="banner">
     <div class="banner-info">
       <strong id="bannerTitle">Make your picks — then lock them in!</strong>
@@ -522,6 +529,7 @@ let currentGroup=null; // {id, name}
 let groupEntries=[]; // array of entry rows from Supabase
 let myEntryId=null;
 let pendingJoinCode=null;
+let viewingEntry=null, savedState=null;
 
 function tm(id){return id?T[id]:null}
 function getW(gid){return officialW[gid]||picks[gid]||null}
@@ -602,46 +610,28 @@ function openViewModal(){document.getElementById('viewModalBg').classList.add('o
 function closeViewModal(){document.getElementById('viewModalBg').classList.remove('open');}
 
 function viewEntry(e){
-  const pts=calcScore(e.picks||{});
-  document.getElementById('viewModalTitle').textContent=e.name+"'s Bracket";
-  document.getElementById('viewModalScore').textContent=`Score: ${pts} / ${maxPts()} pts`;
-  const secs=[
-    {label:"Bracket A — Winner's",games:['g1','g2','g7']},
-    {label:"Bracket A — Loser's",games:['g5','g9','g11','g12']},
-    {label:"Bracket B — Winner's",games:['g3','g4','g8']},
-    {label:"Bracket B — Loser's",games:['g6','g10','g13','g14']},
-    {label:"Championship",games:['cf1','cf2','cf3']},
-  ];
-  const content=document.getElementById('viewModalContent');
-  content.innerHTML='';
-  for(const sec of secs){
-    const sh=document.createElement('div');
-    sh.style.cssText='font-family:var(--fh);font-size:9px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--text3);margin:10px 0 4px;padding-top:8px;border-top:1px solid var(--gray)';
-    sh.textContent=sec.label;
-    content.appendChild(sh);
-    for(const gid of sec.games){
-      const d=GD[gid];
-      const pickId=e.picks?.[gid];
-      const team=tm(pickId);
-      const official=officialW[gid];
-      const correct=official&&pickId===official;
-      const wrong=official&&pickId&&pickId!==official;
-      const row=document.createElement('div');
-      row.style.cssText='display:flex;align-items:center;gap:8px;padding:5px 2px;border-bottom:1px solid var(--gray)';
-      const lbl=document.createElement('span');
-      lbl.style.cssText='font-family:var(--fh);font-size:9px;font-weight:700;color:var(--text3);width:28px;flex-shrink:0;text-align:right';
-      lbl.textContent=d.label;
-      const nm=document.createElement('span');
-      nm.style.cssText=`flex:1;font-family:var(--fh);font-size:13px;font-weight:600;color:${correct?'var(--green)':wrong?'var(--red)':team?'var(--navy)':'var(--text3)'}`;
-      nm.textContent=team?(team.seed?'#'+team.seed+' '+team.name:team.name):'—';
-      const ic=document.createElement('span');
-      ic.style.cssText=`font-size:13px;font-weight:700;flex-shrink:0;color:${correct?'var(--green)':'var(--red)'}`;
-      ic.textContent=correct?'✓':wrong?'✗':'';
-      row.appendChild(lbl);row.appendChild(nm);row.appendChild(ic);
-      content.appendChild(row);
-    }
-  }
-  openViewModal();
+  savedState={picks,submitted,myName};
+  picks=e.picks||{};
+  submitted=true;
+  myName=e.name;
+  viewingEntry=e;
+  const pts=calcScore(picks);
+  const vb=document.getElementById('viewingBar');
+  vb.style.display='flex';
+  document.getElementById('viewingNameEl').textContent=e.name+"'s Bracket";
+  document.getElementById('viewingScoreEl').textContent=`${pts} / ${maxPts()} pts · ${Object.keys(officialW).length} game${Object.keys(officialW).length!==1?'s':''} decided`;
+  switchTab('bracket');
+  render();
+}
+function closeViewBracket(){
+  picks=savedState.picks;
+  submitted=savedState.submitted;
+  myName=savedState.myName;
+  viewingEntry=null;
+  savedState=null;
+  document.getElementById('viewingBar').style.display='none';
+  switchTab('group');
+  render();
 }
 async function confirmName(){
   const n=document.getElementById('nameInput').value.trim();

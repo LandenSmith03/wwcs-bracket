@@ -1,0 +1,1548 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>2026 WCWS Bracket Challenge</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Oswald:wght@400;500;600;700&family=Source+Sans+3:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+/* ═══════════════════════════════════
+   CLASSIC BASEBALL COLOR SCHEME
+   Navy #0a1628, Red #c8102e, White #ffffff
+═══════════════════════════════════ */
+:root {
+  --navy:   #0a1628;
+  --navy2:  #122040;
+  --navy3:  #1a2e54;
+  --red:    #c8102e;
+  --red2:   #e8192e;
+  --red-bg: rgba(200,16,46,0.08);
+  --white:  #ffffff;
+  --off:    #f5f6f8;
+  --gray:   #e8eaee;
+  --gray2:  #d0d4dc;
+  --text:   #0a1628;
+  --text2:  #4a5568;
+  --text3:  #8a95a8;
+  --green:  #15803d;
+  --green-bg: rgba(21,128,61,0.1);
+  --wrong-bg: rgba(200,16,46,0.1);
+  --gold:   #c8a84b;
+  --line:   #c8d0dc;
+  --fh: 'Oswald', sans-serif;
+  --fb: 'Source Sans 3', sans-serif;
+  --r: 4px;
+  --r2: 8px;
+  --shadow: 0 1px 3px rgba(10,22,40,0.12);
+  --shadow2: 0 2px 8px rgba(10,22,40,0.15);
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+html, body { min-height: 100%; background: var(--off); color: var(--text); font-family: var(--fb); }
+
+/* ── HEADER ── */
+.hd { background: var(--navy); padding: 0 16px; position: sticky; top: 0; z-index: 200; box-shadow: var(--shadow2); }
+.hd-inner { max-width: 1400px; margin: 0 auto; display: flex; align-items: center; justify-content: space-between; gap: 12px; height: 56px; }
+.hd-logo { display: flex; align-items: center; gap: 10px; }
+.logo-ic { width: 34px; height: 34px; background: var(--red); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0; }
+.hd-title { }
+.hd h1 { font-family: 'Bebas Neue', var(--fh); font-size: 22px; letter-spacing: .12em; color: var(--white); line-height: 1; }
+.hd p { font-size: 10px; color: rgba(255,255,255,0.5); margin-top: 1px; letter-spacing: .04em; }
+.hd-right { display: flex; gap: 8px; align-items: center; }
+.btn { font-family: var(--fh); font-size: 11px; font-weight: 600; letter-spacing: .07em; text-transform: uppercase; padding: 6px 13px; border-radius: var(--r); border: 1.5px solid rgba(255,255,255,0.25); background: transparent; color: rgba(255,255,255,0.7); cursor: pointer; transition: all .15s; white-space: nowrap; }
+.btn:hover { background: rgba(255,255,255,0.1); color: var(--white); border-color: rgba(255,255,255,0.5); }
+.btn.red { background: var(--red); color: var(--white); border-color: var(--red); }
+.btn.red:hover { background: var(--red2); }
+.btn.white { background: var(--white); color: var(--navy); border-color: var(--white); }
+.btn.white:hover { background: var(--off); }
+/* non-header buttons */
+.btn-navy { font-family: var(--fh); font-size: 11px; font-weight: 600; letter-spacing: .07em; text-transform: uppercase; padding: 6px 13px; border-radius: var(--r); border: 1.5px solid var(--navy3); background: transparent; color: var(--navy); cursor: pointer; transition: all .15s; white-space: nowrap; }
+.btn-navy:hover { background: var(--navy); color: var(--white); }
+.btn-navy.solid { background: var(--navy); color: var(--white); }
+.btn-navy.solid:hover { background: var(--navy2); }
+.btn-red { font-family: var(--fh); font-size: 11px; font-weight: 600; letter-spacing: .07em; text-transform: uppercase; padding: 6px 13px; border-radius: var(--r); border: 1.5px solid var(--red); background: var(--red); color: var(--white); cursor: pointer; transition: all .15s; white-space: nowrap; }
+.btn-red:hover { background: var(--red2); }
+.live-pill { display: none; align-items: center; gap: 5px; background: rgba(200,16,46,0.2); border: 1px solid rgba(200,16,46,0.4); border-radius: 20px; padding: 3px 9px; font-family: var(--fh); font-size: 10px; font-weight: 600; letter-spacing: .07em; color: #ff6b7a; }
+.live-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--red); animation: blink 1.1s infinite; }
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:.25} }
+.live-pill.on { display: flex; }
+
+/* ── TABS ── */
+.tabs { background: var(--navy2); display: flex; justify-content: center; position: sticky; top: 56px; z-index: 150; border-bottom: 2px solid var(--navy3); }
+.tab { font-family: var(--fh); font-size: 11px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; padding: 10px 18px; border: none; background: transparent; color: rgba(255,255,255,0.45); cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -2px; transition: all .15s; }
+.tab.active { color: var(--white); border-bottom-color: var(--red); }
+.tab:hover:not(.active) { color: rgba(255,255,255,0.7); }
+.tab-pane { display: none; }
+.tab-pane.active { display: block; }
+
+/* ── MAIN ── */
+.main { max-width: 1400px; margin: 0 auto; padding: 16px 12px 80px; }
+
+/* ── STATUS BAR ── */
+.status-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 10px; flex-wrap: wrap; }
+.status-txt { font-size: 11px; color: var(--text2); font-family: var(--fh); letter-spacing: .04em; }
+.hi { color: var(--green); } .err { color: var(--red); } .warn { color: #b45309; }
+.src-badge { font-family: var(--fh); font-size: 9px; font-weight: 700; letter-spacing: .06em; padding: 1px 6px; border-radius: 20px; border: 1px solid var(--gray2); color: var(--text3); background: var(--white); margin-left: 6px; }
+.src-badge.ncaa { color: var(--green); border-color: rgba(21,128,61,.3); background: var(--green-bg); }
+.src-badge.espn { color: #b45309; border-color: rgba(180,83,9,.3); }
+.src-badge.admin { color: var(--navy); border-color: var(--navy3); }
+.last-up { font-size: 10px; color: var(--text3); }
+
+/* ── SUBMIT BANNER ── */
+.banner { background: var(--white); border: 1.5px solid var(--gray2); border-left: 4px solid var(--navy); border-radius: var(--r2); padding: 12px 16px; display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 12px; flex-wrap: wrap; box-shadow: var(--shadow); }
+.banner.sub { border-left-color: var(--green); }
+.banner-info strong { font-family: var(--fh); font-size: 14px; font-weight: 700; letter-spacing: .03em; color: var(--navy); display: block; margin-bottom: 2px; }
+.banner-info p { font-size: 11px; color: var(--text2); }
+.score-big { font-family: 'Bebas Neue', var(--fh); font-size: 32px; color: var(--navy); line-height: 1; text-align: right; }
+.score-big span { font-size: 11px; color: var(--text2); display: block; font-family: var(--fh); letter-spacing: .05em; margin-top: 1px; }
+.banner.sub .score-big { color: var(--green); }
+
+/* ── POINTS LEGEND ── */
+.pts-row { display: flex; gap: 5px; margin-bottom: 12px; flex-wrap: wrap; }
+.pts-chip { font-family: var(--fh); font-size: 10px; font-weight: 600; letter-spacing: .05em; padding: 2px 8px; border-radius: 20px; border: 1px solid var(--gray2); color: var(--text2); background: var(--white); white-space: nowrap; box-shadow: var(--shadow); }
+.pts-chip .pt { color: var(--red); font-weight: 700; }
+
+/* ════════════════════════════════════
+   BRACKET — pure HTML/CSS
+   Winner's bracket on top,
+   Loser's bracket below (stacked),
+   matching NCAA official layout
+════════════════════════════════════ */
+.bracket-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; padding: 4px 0 12px; }
+.bracket-outer { display: inline-block; min-width: max-content; padding: 8px 4px; }
+
+/* Section labels */
+.bkt-section-label {
+  font-family: 'Bebas Neue', var(--fh);
+  font-size: 16px; letter-spacing: .12em; color: var(--navy);
+  margin-bottom: 6px; margin-top: 16px;
+  padding-bottom: 4px;
+  border-bottom: 2px solid var(--red);
+  display: inline-block;
+}
+.bkt-section-label:first-child { margin-top: 0; }
+.round-label {
+  font-family: var(--fh); font-size: 9px; font-weight: 600;
+  letter-spacing: .1em; text-transform: uppercase;
+  color: var(--text3); text-align: center; padding-bottom: 5px;
+}
+
+/* A "row" of rounds side by side */
+.round-row { display: flex; align-items: flex-start; gap: 0; }
+
+/* Each round column */
+.round-col { display: flex; flex-direction: column; }
+
+/* Match wrapper */
+.match-wrap { display: flex; flex-direction: row; align-items: center; margin-bottom: 10px; }
+
+/* The two team slots */
+.match-slots { display: flex; flex-direction: column; }
+
+/* Team slot button */
+.tslot {
+  width: 152px; height: 42px;
+  background: var(--white);
+  border: 1px solid var(--gray2);
+  display: flex; align-items: center;
+  padding: 0 8px; gap: 5px;
+  cursor: pointer; color: var(--text);
+  font-family: var(--fh); font-size: 12px; font-weight: 600;
+  letter-spacing: .02em; text-align: left;
+  transition: background .1s, border-color .1s;
+  position: relative;
+  border-left: 3px solid transparent;
+  box-shadow: var(--shadow);
+}
+.tslot:first-child { border-radius: var(--r) var(--r) 0 0; border-bottom: 1px solid var(--gray); }
+.tslot:last-child { border-radius: 0 0 var(--r) var(--r); border-top: none; }
+.tslot:hover:not(:disabled) { background: var(--off); border-color: var(--gray2); }
+.tslot:disabled { cursor: default; }
+.ts-seed { font-size: 9px; color: var(--text3); font-weight: 700; min-width: 14px; text-align: right; flex-shrink: 0; font-family: var(--fh); }
+.ts-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; }
+.ts-score { font-size: 11px; font-weight: 700; color: var(--text2); flex-shrink: 0; }
+.ts-check { font-size: 8px; color: var(--green); background: var(--green-bg); border-radius: 3px; padding: 1px 3px; margin-left: 2px; flex-shrink: 0; font-family: var(--fh); font-weight: 700; }
+
+/* Slot states */
+.tslot.picked { background: #eef6ff; border-left-color: var(--navy); }
+.tslot.picked .ts-name { color: var(--navy); font-weight: 700; }
+.tslot.correct { background: var(--green-bg); border-left-color: var(--green); }
+.tslot.correct .ts-name { color: var(--green); font-weight: 700; }
+.tslot.correct .ts-seed { color: var(--green); }
+.tslot.wrong { background: var(--wrong-bg); border-left-color: var(--red); }
+.tslot.wrong .ts-name { color: var(--red); }
+.tslot.wrong .ts-seed { color: var(--red); opacity: .7; }
+.tslot.elim .ts-name { color: var(--text3); }
+.tslot.elim .ts-seed { opacity: .4; }
+.tslot.tbd-s { opacity: .5; }
+.tslot.tbd-s .ts-name { color: var(--text3); font-style: italic; font-size: 11px; }
+.live-tag { position: absolute; top: 2px; right: 3px; font-family: var(--fh); font-size: 7px; font-weight: 700; letter-spacing: .05em; background: var(--red); color: var(--white); padding: 1px 3px; border-radius: 2px; }
+
+/* Game label strip above match */
+.match-label {
+  font-family: var(--fh); font-size: 8px; font-weight: 600;
+  letter-spacing: .07em; text-transform: uppercase;
+  color: var(--text3); margin-bottom: 2px; padding: 0 2px;
+  display: flex; justify-content: space-between; width: 152px;
+}
+.match-label .ml-pts { color: var(--red); font-weight: 700; }
+
+/* Connector lines — right side of match */
+.conn-right {
+  display: flex; flex-direction: column;
+  width: 24px; flex-shrink: 0;
+  align-self: stretch;
+  margin-top: 18px; /* offset for label height */
+}
+.cr-top { flex: 1; border-top: 1.5px solid var(--line); border-right: 1.5px solid var(--line); }
+.cr-bot { flex: 1; border-bottom: 1.5px solid var(--line); border-right: 1.5px solid var(--line); }
+.conn-right.dash .cr-top { border-color: var(--gray2); border-style: dashed; }
+.conn-right.dash .cr-bot { border-color: var(--gray2); border-style: dashed; }
+
+/* Horizontal connector between rounds */
+.h-conn { width: 16px; flex-shrink: 0; border-top: 1.5px solid var(--line); align-self: center; margin-top: 18px; }
+.h-conn.dash { border-color: var(--gray2); border-style: dashed; }
+
+/* "If necessary" label */
+.ifnec-lbl { font-family: var(--fh); font-size: 8px; color: var(--text3); text-align: center; padding: 2px 0; width: 152px; letter-spacing: .04em; }
+
+/* Championship section */
+.champ-section { display: flex; flex-direction: column; align-items: center; padding: 0 16px; }
+.champ-trophy-box {
+  background: var(--navy); border-radius: var(--r2);
+  padding: 14px 16px; text-align: center; width: 180px;
+  margin-bottom: 10px; box-shadow: var(--shadow2);
+}
+.champ-trophy-box .trophy { font-size: 24px; margin-bottom: 4px; display: block; }
+.champ-trophy-box .clbl { font-family: var(--fh); font-size: 9px; font-weight: 600; letter-spacing: .1em; text-transform: uppercase; color: rgba(255,255,255,0.5); margin-bottom: 4px; }
+.champ-trophy-box .cnm { font-family: 'Bebas Neue', var(--fh); font-size: 18px; color: var(--white); letter-spacing: .08em; min-height: 22px; }
+.champ-games-label { font-family: var(--fh); font-size: 9px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--navy); text-align: center; margin-bottom: 6px; }
+
+/* ── BRACKET FULL LAYOUT ── */
+.bracket-full { display: flex; align-items: flex-start; gap: 0; }
+.bracket-half { display: flex; flex-direction: column; }
+.winner-row { display: flex; align-items: flex-start; }
+.loser-row { display: flex; align-items: flex-start; margin-top: 8px; }
+
+/* ── GROUP FEATURE ── */
+.group-wrap { max-width: 560px; margin: 0 auto; }
+.group-card { background: var(--white); border: 1.5px solid var(--gray2); border-radius: var(--r2); padding: 18px; margin-bottom: 12px; box-shadow: var(--shadow); }
+.group-card h3 { font-family: var(--fh); font-size: 15px; font-weight: 700; letter-spacing: .05em; color: var(--navy); margin-bottom: 6px; text-transform: uppercase; }
+.group-card p { font-size: 12px; color: var(--text2); margin-bottom: 12px; line-height: 1.5; }
+.group-input { width: 100%; padding: 9px 11px; background: var(--off); border: 1.5px solid var(--gray2); border-radius: var(--r); color: var(--text); font-size: 14px; font-family: var(--fb); outline: none; margin-bottom: 10px; transition: border-color .15s; }
+.group-input:focus { border-color: var(--navy); }
+.group-btns { display: flex; gap: 8px; }
+.group-leaderboard { margin-top: 16px; }
+.lb-row { display: flex; align-items: center; gap: 10px; background: var(--white); border: 1.5px solid var(--gray2); border-radius: var(--r2); padding: 10px 14px; margin-bottom: 6px; box-shadow: var(--shadow); }
+.lb-row.you { border-color: var(--navy); border-left: 4px solid var(--navy); }
+.lb-row.lead { border-left: 4px solid var(--red); }
+.lb-rank { font-family: 'Bebas Neue', var(--fh); font-size: 20px; color: var(--text3); width: 28px; flex-shrink: 0; text-align: center; }
+.lb-rank.top { color: var(--red); }
+.lb-name { font-family: var(--fh); font-size: 14px; font-weight: 600; flex: 1; color: var(--navy); }
+.lb-pts { font-family: 'Bebas Neue', var(--fh); font-size: 22px; color: var(--navy); }
+.lb-pts span { font-size: 11px; color: var(--text2); font-family: var(--fh); font-weight: 400; }
+.lb-champ { font-size: 10px; color: var(--text2); }
+.lb-actions { display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
+.group-code-display { font-family: 'Bebas Neue', var(--fh); font-size: 28px; letter-spacing: .2em; color: var(--red); text-align: center; background: var(--off); border: 2px dashed var(--gray2); border-radius: var(--r2); padding: 12px; margin: 10px 0; }
+.group-status { font-size: 12px; color: var(--text2); text-align: center; margin-top: 4px; }
+
+/* ── ADMIN ── */
+.admin-wrap { max-width: 480px; margin: 0 auto; }
+.admin-login { background: var(--white); border: 1.5px solid var(--gray2); border-radius: var(--r2); padding: 20px; max-width: 320px; margin: 40px auto; box-shadow: var(--shadow); }
+.admin-login h2 { font-family: var(--fh); font-size: 17px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; color: var(--navy); margin-bottom: 6px; }
+.admin-login p { font-size: 12px; color: var(--text2); margin-bottom: 12px; }
+.admin-login input { width: 100%; padding: 9px 11px; background: var(--off); border: 1.5px solid var(--gray2); border-radius: var(--r); color: var(--text); font-size: 14px; font-family: var(--fb); outline: none; margin-bottom: 10px; transition: border-color .15s; }
+.admin-login input:focus { border-color: var(--navy); }
+.ag { background: var(--white); border: 1.5px solid var(--gray2); border-radius: var(--r2); overflow: hidden; margin-bottom: 7px; box-shadow: var(--shadow); }
+.ag-hd { font-family: var(--fh); font-size: 10px; font-weight: 700; letter-spacing: .07em; text-transform: uppercase; color: var(--text2); padding: 5px 10px 4px; border-bottom: 1px solid var(--gray); display: flex; justify-content: space-between; align-items: center; background: var(--off); }
+.ag-hd .done { color: var(--green); font-size: 9px; }
+.ag-teams { display: flex; gap: 6px; padding: 8px; }
+.ag-btn { flex: 1; font-family: var(--fh); font-size: 12px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; padding: 8px 5px; border-radius: var(--r); border: 1.5px solid var(--gray2); background: var(--off); color: var(--text2); cursor: pointer; transition: all .15s; text-align: center; }
+.ag-btn:hover:not(:disabled) { background: var(--navy); color: var(--white); border-color: var(--navy); }
+.ag-btn.sel { background: var(--green-bg); color: var(--green); border-color: rgba(21,128,61,.4); font-weight: 700; }
+.ag-btn:disabled { opacity: .4; cursor: default; }
+.ag-sec { font-family: var(--fh); font-size: 11px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--navy); padding: 12px 0 5px; border-top: 1px solid var(--gray); margin-top: 6px; }
+.ag-sec:first-child { border-top: none; margin-top: 0; }
+
+/* ── MODAL ── */
+.modal-bg { position: fixed; inset: 0; background: rgba(10,22,40,0.6); display: flex; align-items: center; justify-content: center; z-index: 500; padding: 20px; opacity: 0; pointer-events: none; transition: opacity .2s; }
+.modal-bg.open { opacity: 1; pointer-events: all; }
+.modal { background: var(--white); border: 1.5px solid var(--gray2); border-radius: 12px; padding: 24px; width: 100%; max-width: 360px; transform: translateY(18px); transition: transform .2s; box-shadow: 0 8px 32px rgba(10,22,40,0.2); }
+.modal-bg.open .modal { transform: translateY(0); }
+.modal h2 { font-family: 'Bebas Neue', var(--fh); font-size: 22px; letter-spacing: .1em; margin-bottom: 6px; color: var(--navy); }
+.modal p { font-size: 12px; color: var(--text2); margin-bottom: 14px; line-height: 1.5; }
+.modal input { width: 100%; padding: 10px 12px; background: var(--off); border: 1.5px solid var(--gray2); border-radius: var(--r); color: var(--text); font-size: 14px; font-family: var(--fb); outline: none; margin-bottom: 10px; transition: border-color .15s; }
+.modal input:focus { border-color: var(--navy); }
+.modal-btns { display: flex; gap: 8px; }
+.modal-btns button { flex: 1; }
+
+/* ── HOW IT WORKS ── */
+.how-panel { background: var(--white); border: 1.5px solid var(--gray2); border-radius: var(--r2); padding: 16px; margin-top: 14px; box-shadow: var(--shadow); }
+.how-panel h3 { font-family: var(--fh); font-size: 13px; font-weight: 700; letter-spacing: .07em; text-transform: uppercase; color: var(--navy); margin-bottom: 11px; border-bottom: 1px solid var(--gray); padding-bottom: 8px; }
+.how-row { display: flex; gap: 10px; margin-bottom: 9px; }
+.how-ic { font-size: 15px; flex-shrink: 0; margin-top: 1px; }
+.how-text strong { font-family: var(--fh); font-size: 11px; font-weight: 700; color: var(--navy); text-transform: uppercase; letter-spacing: .04em; display: block; margin-bottom: 2px; }
+.how-text p { font-size: 11px; color: var(--text2); line-height: 1.5; }
+.how-text a { color: var(--red); text-decoration: none; }
+.hdiv { height: 1px; background: var(--gray); margin: 9px 0; }
+
+/* ── TOAST ── */
+.toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%) translateY(80px); background: var(--navy); color: var(--white); font-family: var(--fh); font-size: 12px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; padding: 9px 22px; border-radius: 999px; transition: transform .3s cubic-bezier(.34,1.56,.64,1); z-index: 999; pointer-events: none; white-space: nowrap; box-shadow: var(--shadow2); }
+.toast.show { transform: translateX(-50%) translateY(0); }
+.toast.err { background: var(--red); }
+
+/* ── MOBILE — horizontal scroll, same bracket as desktop ── */
+.mob-bracket { display: none; }
+.bracket-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; padding-bottom: 8px; }
+@media (max-width: 700px) {
+  .main { padding: 10px 6px 80px; }
+  /* Shrink slots for mobile */
+  .tslot { width: 118px; height: 38px; padding: 0 5px; gap: 3px; font-size: 11px; }
+  .ts-name { font-size: 11px; }
+  .ts-seed { font-size: 8px; min-width: 11px; }
+  .match-label { width: 118px; font-size: 7px; gap: 2px; }
+  .ifnec-lbl { width: 118px; }
+  .bkt-section-label { font-size: 13px; }
+  .round-label { font-size: 8px; }
+  /* Scroll hint */
+  .bracket-scroll::after {
+    content: 'swipe to see full bracket →';
+    display: block;
+    text-align: center;
+    font-family: var(--fh);
+    font-size: 10px;
+    letter-spacing: .06em;
+    color: var(--text3);
+    padding: 8px 0 2px;
+  }
+}
+</style>
+</head>
+<body>
+
+<header class="hd">
+  <div class="hd-inner">
+    <div class="hd-logo">
+      <div class="logo-ic">🥎</div>
+      <div class="hd-title">
+        <h1>WCWS 2026 Bracket</h1>
+        <p>Devon Park · Oklahoma City · May 28 – June 5</p>
+      </div>
+    </div>
+    <div class="live-pill" id="livePill"><span class="live-dot"></span>Live</div>
+    <div class="hd-right">
+      <button class="btn" id="resetBtn" onclick="confirmReset()">Reset</button>
+      <button class="btn white" onclick="shareLink()">Share 🔗</button>
+    </div>
+  </div>
+</header>
+
+<div class="tabs">
+  <button class="tab active" onclick="switchTab('bracket')">My Bracket</button>
+  <button class="tab" onclick="switchTab('group')">Group 👥</button>
+  <button class="tab" onclick="switchTab('admin')">Admin</button>
+  <button class="tab" onclick="switchTab('how')">How It Works</button>
+</div>
+
+<!-- BRACKET TAB -->
+<div class="main tab-pane active" id="tab-bracket">
+  <div class="status-row">
+    <div><span class="status-txt" id="statusTxt"><span class="hi">Loading scores…</span></span><span class="src-badge" id="srcBadge"></span></div>
+    <div class="last-up" id="lastUp"></div>
+  </div>
+  <div class="banner" id="banner">
+    <div class="banner-info">
+      <strong id="bannerTitle">Make your picks — then lock them in!</strong>
+      <p id="bannerSub">Pick every game including already-played ones. Submit when done. Picks lock permanently.</p>
+    </div>
+    <div style="display:flex;flex-direction:column;align-items:flex-end;gap:7px">
+      <div class="score-big" id="scoreEl" style="display:none">0<span>PTS</span></div>
+      <button class="btn-red" id="subBtn" onclick="submitBracket()">Submit Bracket</button>
+    </div>
+  </div>
+  <div class="pts-row">
+    <div class="pts-chip">R1 (G1–4): <span class="pt">1pt</span></div>
+    <div class="pts-chip">L-R1 (G5–6): <span class="pt">1pt</span></div>
+    <div class="pts-chip">W-Semis (G7–8): <span class="pt">2pts</span></div>
+    <div class="pts-chip">L-Semis (G9–10): <span class="pt">2pts</span></div>
+    <div class="pts-chip">Bkt Finals (G11–14): <span class="pt">3pts</span></div>
+    <div class="pts-chip">Championship: <span class="pt">5pts</span></div>
+  </div>
+  <div class="bracket-scroll"><div class="bracket-outer" id="desktopBracket"></div></div>
+  <div class="mob-bracket" id="mobBracket"></div>
+</div>
+
+<!-- GROUP TAB -->
+<div class="main tab-pane" id="tab-group">
+  <div class="group-wrap">
+    <div id="groupContent"></div>
+  </div>
+</div>
+
+<!-- ADMIN TAB -->
+<div class="main tab-pane" id="tab-admin">
+  <div class="admin-wrap">
+    <div id="adminLogin" class="admin-login">
+      <h2>🔐 Admin Panel</h2>
+      <p>Enter the password to manually update game results.</p>
+      <input type="password" id="adminPwInput" placeholder="Password…" onkeydown="if(event.key==='Enter')doAdminLogin()">
+      <button class="btn-red" style="width:100%;text-align:center" onclick="doAdminLogin()">Enter</button>
+      <p id="adminErr" style="color:var(--red);font-size:11px;margin-top:7px;display:none">Incorrect password</p>
+    </div>
+    <div id="adminPanel" style="display:none">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+        <div style="font-family:var(--fh);font-size:14px;font-weight:700;letter-spacing:.05em;color:var(--navy);text-transform:uppercase">Admin — Update Results</div>
+        <button class="btn-navy" onclick="doAdminLogout()">Log Out</button>
+      </div>
+      <p style="font-size:11px;color:var(--text2);margin-bottom:12px">Tap the winning team. Verified results (already hardcoded) are locked.</p>
+      <div id="adminGames"></div>
+    </div>
+  </div>
+</div>
+
+<!-- HOW IT WORKS TAB -->
+<div class="main tab-pane" id="tab-how">
+  <div style="max-width:560px;margin:0 auto">
+    <div class="how-panel" style="margin-top:0">
+      <h3>📋 How to Play</h3>
+      <div class="how-row"><div class="how-ic">🖊️</div><div class="how-text"><strong>Pick every game</strong><p>Tap either team — winner's and loser's bracket. You can pick games that already happened.</p></div></div>
+      <div class="hdiv"></div>
+      <div class="how-row"><div class="how-ic">🔒</div><div class="how-text"><strong>Submit to lock</strong><p>Once submitted, picks are permanent. Green = correct, Red = wrong after games finish.</p></div></div>
+      <div class="hdiv"></div>
+      <div class="how-row"><div class="how-ic">👥</div><div class="how-text"><strong>Create or join a group</strong><p>Go to the Group tab. Create a group to get a code, share it with friends. Everyone submits their bracket and sees each other's scores on the leaderboard.</p></div></div>
+      <div class="hdiv"></div>
+      <div class="how-row"><div class="how-ic">⭐</div><div class="how-text"><strong>Points</strong><p>R1 & L-R1: 1pt · W/L Semis: 2pts · Bracket Finals: 3pts · Championship: 5pts each. Max ~28pts.</p></div></div>
+    </div>
+    <div class="how-panel">
+      <h3>📡 Live Scores</h3>
+      <div class="how-row"><div class="how-ic">1️⃣</div><div class="how-text"><strong>Verified results</strong><p>Completed games are hardcoded and load instantly.</p></div></div>
+      <div class="hdiv"></div>
+      <div class="how-row"><div class="how-ic">2️⃣</div><div class="how-text"><strong>NCAA + ESPN feeds</strong><p>Live scores auto-refresh every 60 seconds.</p></div></div>
+      <div class="hdiv"></div>
+      <div class="how-row"><div class="how-ic">3️⃣</div><div class="how-text"><strong>Admin panel</strong><p>Fallback: admin manually enters winners. Password: ask the bracket host.</p></div></div>
+    </div>
+    <div class="how-panel">
+      <h3>🔗 Sharing</h3>
+      <div class="how-row"><div class="how-ic">🌐</div><div class="how-text"><strong>Host on Netlify</strong><p>Drag & drop to <a href="https://app.netlify.com/drop" target="_blank">Netlify Drop</a> for a free shareable link. Hit Share 🔗 to copy your bracket URL.</p></div></div>
+    </div>
+  </div>
+</div>
+
+<!-- NAME MODAL -->
+<div class="modal-bg" id="modalBg">
+  <div class="modal">
+    <h2>Lock In Your Bracket</h2>
+    <p>Enter your name for the leaderboard. Once submitted, picks are final.</p>
+    <input type="text" id="nameInput" placeholder="Your name…" maxlength="24" onkeydown="if(event.key==='Enter')confirmName()">
+    <div class="modal-btns">
+      <button class="btn-navy" onclick="closeModal()">Cancel</button>
+      <button class="btn-red" onclick="confirmName()">Lock In 🔒</button>
+    </div>
+  </div>
+</div>
+
+<!-- VIEW BRACKET MODAL -->
+<div class="modal-bg" id="viewModalBg" onclick="if(event.target===this)closeViewModal()">
+  <div class="modal" style="max-width:460px;max-height:82vh;display:flex;flex-direction:column">
+    <h2 id="viewModalTitle" style="flex-shrink:0"></h2>
+    <p id="viewModalScore" style="flex-shrink:0;margin-bottom:10px;font-family:var(--fh);font-size:13px;font-weight:700;color:var(--navy)"></p>
+    <div id="viewModalContent" style="overflow-y:auto;flex:1;padding-right:2px"></div>
+    <div class="modal-btns" style="margin-top:14px;flex-shrink:0">
+      <button class="btn-red" onclick="closeViewModal()" style="flex:1;text-align:center">Close</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ═══════════════════════
+//  SUPABASE CONFIG
+// ═══════════════════════
+const SUPA_URL='https://poklxjqcgggjlzzlutkh.supabase.co';
+const SUPA_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBva2x4anFjZ2dnamx6emx1dGtoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAwMTcwMTUsImV4cCI6MjA5NTU5MzAxNX0.Q1XHkfRhvaUsIxUngdRvkVkVixOax0m3sRN2ZKLTXJs';
+const ADMIN_PW='wcws2026admin';
+
+async function supa(method,path,body){
+  const prefer=method==='POST'?'return=representation,resolution=merge-duplicates':'';
+  const opts={method,headers:{'apikey':SUPA_KEY,'Authorization':'Bearer '+SUPA_KEY,'Content-Type':'application/json','Prefer':prefer}};
+  if(body)opts.body=JSON.stringify(body);
+  const r=await fetch(SUPA_URL+'/rest/v1/'+path,opts);
+  if(!r.ok)throw new Error(await r.text());
+  return r.json().catch(()=>null);
+}
+
+// ═══════════════════════
+//  VERIFIED RESULTS
+// ═══════════════════════
+const VERIFIED={}; // All results now managed via Admin tab → Supabase
+
+// ═══════════════════════
+//  TEAMS
+// ═══════════════════════
+const T={
+  textech:  {id:'textech',  seed:11,  name:'Texas Tech'},
+  msstate:  {id:'msstate',  seed:null, name:'Miss. State'},
+  texas:    {id:'texas',    seed:2,   name:'Texas'},
+  tennessee:{id:'tennessee',seed:7,   name:'Tennessee'},
+  alabama:  {id:'alabama',  seed:1,   name:'Alabama'},
+  ucla:     {id:'ucla',     seed:8,   name:'UCLA'},
+  nebraska: {id:'nebraska', seed:4,   name:'Nebraska'},
+  arkansas: {id:'arkansas', seed:5,   name:'Arkansas'},
+};
+
+// ═══════════════════════
+//  GAME DEFINITIONS
+// ═══════════════════════
+const GD={
+  g1: {pts:1, label:'G1',   tv:'ESPN',   teams:['textech','msstate'],  date:'May 28'},
+  g2: {pts:1, label:'G2',   tv:'ESPN',   teams:['texas','tennessee'],  date:'May 28'},
+  g7: {pts:2, label:'G7',   tv:'ABC',    from:['w:g1','w:g2'],         date:'May 30'},
+  g5: {pts:1, label:'G5',   tv:'ESPN2',  from:['l:g1','l:g2'],         date:'May 29'},
+  g9: {pts:2, label:'G9',   tv:'ABC',    from:['w:g5','l:g7'],         date:'May 31'},
+  g11:{pts:3, label:'G11',  tv:'ESPN',   from:['w:g7','w:g9'],         date:'Jun 1'},
+  g12:{pts:3, label:'G11*', tv:'ESPN',   from:['w:g7','w:g9'],         date:'Jun 1', ifnec:true},
+  g3: {pts:1, label:'G3',   tv:'ESPN2',  teams:['alabama','ucla'],      date:'May 28'},
+  g4: {pts:1, label:'G4',   tv:'ESPN2',  teams:['nebraska','arkansas'], date:'May 28'},
+  g8: {pts:2, label:'G8',   tv:'ESPN',   from:['w:g3','w:g4'],         date:'May 30'},
+  g6: {pts:1, label:'G6',   tv:'ESPN2',  from:['l:g3','l:g4'],         date:'May 29'},
+  g10:{pts:2, label:'G10',  tv:'ESPNU',  from:['w:g6','l:g8'],         date:'May 31'},
+  g13:{pts:3, label:'G13',  tv:'ESPN2',  from:['w:g8','w:g10'],        date:'Jun 1'},
+  g14:{pts:3, label:'G13*', tv:'ESPN2',  from:['w:g8','w:g10'],        date:'Jun 1', ifnec:true},
+  cf1:{pts:5, label:'CF1',  tv:'ESPN',   from:['w:g11','w:g13'],       date:'Jun 3', champ:true},
+  cf2:{pts:5, label:'CF2',  tv:'ESPN',   from:['w:g11','w:g13'],       date:'Jun 4', champ:true},
+  cf3:{pts:5, label:'CF3',  tv:'ESPN',   from:['w:g11','w:g13'],       date:'Jun 5', champ:true, ifnec:true},
+};
+
+// ═══════════════════════
+//  STATE
+// ═══════════════════════
+let picks={}, officialW={}, liveData={}, submitted=false, myName='', adminIn=false;
+let currentGroup=null; // {id, name}
+let groupEntries=[]; // array of entry rows from Supabase
+let myEntryId=null;
+let pendingJoinCode=null;
+
+function tm(id){return id?T[id]:null}
+function getW(gid){return officialW[gid]||picks[gid]||null}
+
+function resolveTeams(gid){
+  const d=GD[gid];
+  if(!d.from) return [d.teams[0]?T[d.teams[0]]:null, d.teams[1]?T[d.teams[1]]:null];
+  return d.from.map(ref=>{
+    const[type,src]=ref.split(':');
+    const w=getW(src); if(!w) return null;
+    if(type==='w') return T[w];
+    if(type==='l'){const[a,b]=resolveTeams(src);return[a,b].find(t=>t&&t.id!==w)||null;}
+    return null;
+  });
+}
+
+// What team did the USER have in each slot, based solely on their picks
+function resolveTeamsFromPicks(gid){
+  const d=GD[gid];
+  if(!d.from) return [d.teams[0]?T[d.teams[0]]:null, d.teams[1]?T[d.teams[1]]:null];
+  return d.from.map(ref=>{
+    const[type,src]=ref.split(':');
+    const w=picks[src]; if(!w) return null;
+    if(type==='w') return T[w];
+    if(type==='l'){const[a,b]=resolveTeamsFromPicks(src);return[a,b].find(t=>t&&t.id!==w)||null;}
+    return null;
+  });
+}
+
+function doPick(gid,tid){
+  if(submitted) return;
+  picks[gid]=tid;
+  for(const[g,d] of Object.entries(GD)){
+    if(!d.from) continue;
+    const deps=d.from.map(f=>f.split(':')[1]);
+    if(!deps.includes(gid)) continue;
+    const[a,b]=resolveTeams(g);
+    const cur=picks[g];
+    if(cur&&(!a||!b||(a.id!==cur&&b.id!==cur))) delete picks[g];
+  }
+  save(); render();
+}
+
+function confirmReset(){
+  if(submitted){showToast('Bracket is locked!');return;}
+  picks={}; save(); render(); showToast('Bracket cleared');
+}
+
+function calcScore(picksObj){
+  let pts=0;
+  for(const[gid,d] of Object.entries(GD)){
+    if(officialW[gid]&&picksObj[gid]===officialW[gid]) pts+=d.pts;
+  }
+  return pts;
+}
+function maxPts(){return Object.values(GD).reduce((a,d)=>a+d.pts,0)}
+function countMissing(){
+  let m=0;
+  for(const gid of Object.keys(GD)){
+    const[a,b]=resolveTeams(gid); if(!a||!b) continue;
+    if(!picks[gid]) m++;
+  }
+  return m;
+}
+
+// ═══════════════════════
+//  SUBMIT
+// ═══════════════════════
+function submitBracket(){
+  if(submitted) return;
+  const m=countMissing();
+  if(m>0){showToast(`${m} pick${m>1?'s':''} still needed!`);return;}
+  document.getElementById('modalBg').classList.add('open');
+  setTimeout(()=>document.getElementById('nameInput').focus(),100);
+}
+function closeModal(){document.getElementById('modalBg').classList.remove('open')}
+function openViewModal(){document.getElementById('viewModalBg').classList.add('open');}
+function closeViewModal(){document.getElementById('viewModalBg').classList.remove('open');}
+
+function viewEntry(e){
+  const pts=calcScore(e.picks||{});
+  document.getElementById('viewModalTitle').textContent=e.name+"'s Bracket";
+  document.getElementById('viewModalScore').textContent=`Score: ${pts} / ${maxPts()} pts`;
+  const secs=[
+    {label:"Bracket A — Winner's",games:['g1','g2','g7']},
+    {label:"Bracket A — Loser's",games:['g5','g9','g11','g12']},
+    {label:"Bracket B — Winner's",games:['g3','g4','g8']},
+    {label:"Bracket B — Loser's",games:['g6','g10','g13','g14']},
+    {label:"Championship",games:['cf1','cf2','cf3']},
+  ];
+  const content=document.getElementById('viewModalContent');
+  content.innerHTML='';
+  for(const sec of secs){
+    const sh=document.createElement('div');
+    sh.style.cssText='font-family:var(--fh);font-size:9px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--text3);margin:10px 0 4px;padding-top:8px;border-top:1px solid var(--gray)';
+    sh.textContent=sec.label;
+    content.appendChild(sh);
+    for(const gid of sec.games){
+      const d=GD[gid];
+      const pickId=e.picks?.[gid];
+      const team=tm(pickId);
+      const official=officialW[gid];
+      const correct=official&&pickId===official;
+      const wrong=official&&pickId&&pickId!==official;
+      const row=document.createElement('div');
+      row.style.cssText='display:flex;align-items:center;gap:8px;padding:5px 2px;border-bottom:1px solid var(--gray)';
+      const lbl=document.createElement('span');
+      lbl.style.cssText='font-family:var(--fh);font-size:9px;font-weight:700;color:var(--text3);width:28px;flex-shrink:0;text-align:right';
+      lbl.textContent=d.label;
+      const nm=document.createElement('span');
+      nm.style.cssText=`flex:1;font-family:var(--fh);font-size:13px;font-weight:600;color:${correct?'var(--green)':wrong?'var(--red)':team?'var(--navy)':'var(--text3)'}`;
+      nm.textContent=team?(team.seed?'#'+team.seed+' '+team.name:team.name):'—';
+      const ic=document.createElement('span');
+      ic.style.cssText=`font-size:13px;font-weight:700;flex-shrink:0;color:${correct?'var(--green)':'var(--red)'}`;
+      ic.textContent=correct?'✓':wrong?'✗':'';
+      row.appendChild(lbl);row.appendChild(nm);row.appendChild(ic);
+      content.appendChild(row);
+    }
+  }
+  openViewModal();
+}
+async function confirmName(){
+  const n=document.getElementById('nameInput').value.trim();
+  if(!n){document.getElementById('nameInput').style.borderColor='var(--red)';return;}
+  myName=n; submitted=true; closeModal();
+  save();
+  // If in a group, save entry to Supabase
+  if(currentGroup){
+    await saveGroupEntry();
+  }
+  render(); showToast('Bracket locked! 🔒');
+}
+
+// ═══════════════════════
+//  SAVE / LOAD URL
+// ═══════════════════════
+function save(){
+  const p=new URLSearchParams();
+  Object.entries(picks).forEach(([k,v])=>{if(v)p.set('p_'+k,v)});
+  if(submitted) p.set('sub','1');
+  if(myName) p.set('name',myName);
+  if(currentGroup) p.set('gid',currentGroup.id);
+  if(myEntryId) p.set('eid',myEntryId);
+  const qs=p.toString();
+  history.replaceState(null,'',qs?'?'+qs:location.pathname);
+}
+function loadURL(){
+  const p=new URLSearchParams(location.search);
+  p.forEach((v,k)=>{
+    if(k.startsWith('p_')) picks[k.slice(2)]=v;
+    else if(k==='sub') submitted=v==='1';
+    else if(k==='name') myName=v;
+    else if(k==='gid') currentGroup={id:v,name:''};
+    else if(k==='eid') myEntryId=v;
+    else if(k==='join') pendingJoinCode=v.toUpperCase();
+  });
+}
+function shareLink(){
+  const url=location.href;
+  if(navigator.share) navigator.share({title:'My 2026 WCWS Bracket',text:`${myName||'My'} 2026 WCWS picks!`,url});
+  else if(navigator.clipboard) navigator.clipboard.writeText(url).then(()=>showToast('Link copied!'));
+  else prompt('Copy your bracket link:',url);
+}
+function copyGroupInvite(){
+  if(!currentGroup) return;
+  const url=location.origin+location.pathname+'?join='+currentGroup.id;
+  if(navigator.clipboard) navigator.clipboard.writeText(url).then(()=>showToast('Invite link copied!'));
+  else prompt('Copy invite link:',url);
+}
+function switchTab(n){
+  document.querySelectorAll('.tab-pane').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById('tab-'+n).classList.add('active');
+  document.querySelectorAll('.tab')[['bracket','group','admin','how'].indexOf(n)].classList.add('active');
+  if(n==='group') renderGroupTab();
+  if(n==='admin') renderAdminGames();
+}
+function showToast(msg,isErr=false){
+  const t=document.getElementById('toast');
+  t.textContent=msg;
+  t.className='toast'+(isErr?' err':'')+' show';
+  setTimeout(()=>t.classList.remove('show'),2600);
+}
+
+// ═══════════════════════
+//  GROUP FEATURE
+// ═══════════════════════
+function genCode(){
+  const chars='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  let code='';
+  for(let i=0;i<6;i++) code+=chars[Math.floor(Math.random()*chars.length)];
+  return code;
+}
+
+async function createGroup(){
+  const nameEl=document.getElementById('newGroupName');
+  const name=(nameEl?.value||'').trim();
+  if(!name){nameEl.style.borderColor='var(--red)';return;}
+  const id=genCode();
+  try{
+    await supa('POST','groups',{id,name});
+    currentGroup={id,name};
+    localStorage.setItem('groupOwner_'+id,'1');
+    save();
+    renderGroupTab();
+    showToast('Group created! Share the code.');
+  }catch(e){
+    showToast('Could not create group — check Supabase tables',true);
+  }
+}
+
+async function joinGroupById(code){
+  try{
+    const rows=await supa('GET',`groups?id=eq.${code}&select=id,name`);
+    if(!rows||!rows.length){showToast('Group not found — check the code',true);return false;}
+    currentGroup={id:rows[0].id,name:rows[0].name};
+    save();
+    if(submitted) await saveGroupEntry();
+    renderGroupTab();
+    showToast(`Joined group: ${rows[0].name}!`);
+    return true;
+  }catch(e){
+    showToast('Could not join group',true);
+    return false;
+  }
+}
+
+async function joinGroup(){
+  const codeEl=document.getElementById('joinGroupCode');
+  const code=(codeEl?.value||'').trim().toUpperCase();
+  if(!code){codeEl.style.borderColor='var(--red)';return;}
+  await joinGroupById(code);
+}
+
+async function saveGroupEntry(){
+  if(!currentGroup||!submitted) return;
+  try{
+    const data={group_id:currentGroup.id,name:myName,picks:picks};
+    if(myEntryId){
+      await supa('PATCH',`entries?id=eq.${myEntryId}`,{picks,name:myName});
+    } else {
+      // Check for existing entry with same name to prevent duplicates
+      const existing=await supa('GET',`entries?group_id=eq.${currentGroup.id}&name=eq.${encodeURIComponent(myName)}&select=id`);
+      if(existing&&existing[0]){
+        myEntryId=existing[0].id;
+        await supa('PATCH',`entries?id=eq.${myEntryId}`,{picks,name:myName});
+      } else {
+        const rows=await supa('POST','entries',data);
+        if(rows&&rows[0]) myEntryId=rows[0].id;
+      }
+      save();
+      if(myEntryId) localStorage.setItem('eid_'+currentGroup.id, myEntryId);
+    }
+  }catch(e){
+    showToast('Could not save to group — Supabase unavailable',true);
+  }
+}
+
+async function loadGroupEntries(){
+  if(!currentGroup) return;
+  try{
+    const rows=await supa('GET',`entries?group_id=eq.${currentGroup.id}&select=id,name,picks,submitted_at`);
+    groupEntries=rows||[];
+    // Also load group name if we only have id
+    if(!currentGroup.name){
+      const g=await supa('GET',`groups?id=eq.${currentGroup.id}&select=id,name`);
+      if(g&&g[0]) currentGroup.name=g[0].name;
+    }
+  }catch(e){
+    groupEntries=[];
+  }
+}
+
+async function submitToGroup(){
+  if(!currentGroup||!submitted){showToast('Submit your bracket first',true);return;}
+  const btn=document.getElementById('submitToGroupBtn');
+  if(btn){btn.disabled=true;btn.textContent='Saving…';}
+  await saveGroupEntry();
+  await loadGroupEntries();
+  renderGroupTab();
+  showToast('Bracket added to group leaderboard!');
+}
+
+async function removeEntry(id){
+  if(!confirm('Remove this member from the group?')) return;
+  try{
+    await supa('DELETE',`entries?id=eq.${id}`,null);
+    await loadGroupEntries();
+    renderGroupTab();
+    showToast('Member removed');
+  }catch(e){
+    showToast('Could not remove member',true);
+  }
+}
+
+async function leaveGroup(){
+  currentGroup=null; myEntryId=null;
+  save(); renderGroupTab();
+}
+
+async function renderGroupTab(){
+  const el=document.getElementById('groupContent');
+  if(!currentGroup){
+    el.innerHTML=`
+      <div class="group-card">
+        <h3>🏟️ Create a Group</h3>
+        <p>Start a group for your friends. Share the 6-letter code so they can join and compete on a live leaderboard.</p>
+        <input class="group-input" id="newGroupName" placeholder="Group name (e.g. Office Pool 2026)…" maxlength="40">
+        <div class="group-btns">
+          <button class="btn-red" onclick="createGroup()" style="flex:1;text-align:center">Create Group</button>
+        </div>
+      </div>
+      <div class="group-card" style="margin-top:0">
+        <h3>🔑 Join a Group</h3>
+        <p>Have a 6-letter code from a friend? Enter it below to join their group.</p>
+        <input class="group-input" id="joinGroupCode" placeholder="Enter 6-letter code…" maxlength="6" style="text-transform:uppercase;letter-spacing:.15em;font-family:var(--fh);font-size:16px;font-weight:700">
+        <div class="group-btns">
+          <button class="btn-navy solid" onclick="joinGroup()" style="flex:1;text-align:center">Join Group</button>
+        </div>
+      </div>
+    `;
+    return;
+  }
+
+  await loadGroupEntries();
+
+  // Score each entry
+  const scored=groupEntries.map(e=>{
+    const pts=calcScore(e.picks||{});
+    const champ=Object.entries(e.picks||{}).filter(([k])=>['cf1','cf2','cf3'].includes(k));
+    const champWins={};
+    champ.forEach(([,v])=>{champWins[v]=(champWins[v]||0)+1;});
+    const champPick=Object.entries(champWins).sort(([,a],[,b])=>b-a)[0]?.[0]||null;
+    return {...e,pts,champPick};
+  }).sort((a,b)=>b.pts-a.pts);
+
+  const isMe=(e)=>e.id===myEntryId;
+  const isOwner=!!localStorage.getItem('groupOwner_'+currentGroup.id);
+  const totalGames=Object.keys(officialW).length;
+
+  el.innerHTML=`
+    <div class="group-card">
+      <h3>${currentGroup.name}</h3>
+      <p>Share this code with friends so they can join:</p>
+      <div class="group-code-display">${currentGroup.id}</div>
+      <div class="group-status">${scored.length} bracket${scored.length!==1?'s':''} submitted · ${totalGames} of 17 games decided</div>
+    </div>
+  `;
+
+  if(!submitted){
+    const notice=document.createElement('div');
+    notice.className='group-card';
+    notice.style.borderLeft='4px solid var(--red)';
+    notice.innerHTML=`<h3>⚠️ Submit Your Bracket First</h3><p>Go to the <strong>My Bracket</strong> tab, make all your picks, and submit to appear on the leaderboard.</p>`;
+    el.appendChild(notice);
+  } else if(!myEntryId){
+    const notice=document.createElement('div');
+    notice.className='group-card';
+    notice.style.borderLeft='4px solid var(--navy)';
+    notice.innerHTML=`<h3>📋 Add Your Bracket to This Group</h3><p>Your bracket is locked in — click below to add it to the group leaderboard.</p><button id="submitToGroupBtn" class="btn-red" style="width:100%;text-align:center" onclick="submitToGroup()">Submit Bracket to Group</button>`;
+    el.appendChild(notice);
+  }
+
+  if(scored.length>0){
+    const lb=document.createElement('div');lb.className='group-leaderboard';
+    const lbhd=document.createElement('div');
+    lbhd.style.cssText='font-family:var(--fh);font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--text2);margin-bottom:8px';
+    lbhd.textContent='Leaderboard';
+    lb.appendChild(lbhd);
+    scored.forEach((e,i)=>{
+      const row=document.createElement('div');
+      row.className='lb-row'+(isMe(e)?' you':i===0?' lead':'');
+      const champT=tm(e.champPick);
+      row.innerHTML=`
+        <div class="lb-rank ${i===0?'top':''}">${i+1}</div>
+        <div style="flex:1">
+          <div class="lb-name">${e.name}${isMe(e)?' <span style="font-size:10px;color:var(--text3);font-weight:400">(you)</span>':''}</div>
+          <div class="lb-champ">Champion pick: ${champT?champT.name:'—'}</div>
+        </div>
+        <div class="lb-pts">${e.pts}<span> / ${maxPts()} pts</span></div>
+        ${isOwner&&!isMe(e)?`<button onclick="event.stopPropagation();removeEntry('${e.id}')" style="background:none;border:none;color:var(--text3);cursor:pointer;font-size:18px;padding:0 4px;flex-shrink:0;line-height:1" title="Remove member">✕</button>`:''}
+      `;
+      row.style.cursor='pointer';
+      row.onclick=()=>viewEntry(e);
+      lb.appendChild(row);
+    });
+    el.appendChild(lb);
+  }
+
+  // Actions
+  const actions=document.createElement('div');
+  actions.className='lb-actions';
+  actions.innerHTML=`
+    <button class="btn-red" onclick="shareLink()" style="flex:1;text-align:center">Share My Bracket 🔗</button>
+    <button class="btn-navy solid" onclick="copyGroupInvite()">Invite Link 🔗</button>
+    <button class="btn-navy" onclick="leaveGroup()">Leave Group</button>
+  `;
+  el.appendChild(actions);
+}
+
+// ═══════════════════════
+//  LIVE SCORES
+// ═══════════════════════
+function setStatus(cls,msg,src){
+  document.getElementById('statusTxt').innerHTML=`<span class="${cls}">${msg}</span>`;
+  const b=document.getElementById('srcBadge');
+  if(src){b.textContent=src;b.className='src-badge '+(src==='NCAA'?'ncaa':src==='ESPN'?'espn':'admin');}
+  else{b.textContent='';b.className='src-badge';}
+  document.getElementById('lastUp').textContent='Updated '+new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
+}
+
+async function fetchAll(){
+  liveData={};
+  officialW={...VERIFIED};
+  // Supabase admin results
+  try{
+    const rows=await supa('GET','results?select=game_id,winner');
+    if(Array.isArray(rows)) rows.forEach(r=>{if(r.winner)officialW[r.game_id]=r.winner;});
+  }catch(e){}
+  // NCAA
+  try{
+    const today=new Date();
+    const mm=String(today.getMonth()+1).padStart(2,'0');
+    const dd=String(today.getDate()).padStart(2,'0');
+    const r=await fetch(`https://ncaa-api.henrygd.me/scoreboard/softball/d1/${today.getFullYear()}/${mm}/${dd}`,{cache:'no-cache'});
+    if(r.ok){
+      const data=await r.json();
+      const NM={'texas tech':'textech','mississippi state':'msstate','texas':'texas','tennessee':'tennessee','alabama':'alabama','ucla':'ucla','nebraska':'nebraska','arkansas':'arkansas'};
+      function nN(n){if(!n)return'';const s=n.toLowerCase().trim();for(const[k,v]of Object.entries(NM))if(s.includes(k))return v;return'';}
+      let found=0,live=0;
+      for(const g of(data.games||[])){
+        const gd=g.game||g;
+        const h=nN(gd.home?.names?.full||''),a=nN(gd.away?.names?.full||'');
+        if(!h||!a) continue;
+        const gid=findGID(h,a); if(!gid) continue;
+        found++;
+        const fin=gd.gameState==='final'||gd.gameState==='F';
+        const inp=gd.gameState==='live'||gd.gameState==='I';
+        if(inp)live++;
+        if(fin&&!officialW[gid]){const hs=parseInt(gd.home?.score)||0,as=parseInt(gd.away?.score)||0;const w=hs>as?h:a;if(w)officialW[gid]=w;}
+        if(inp){const hs=parseInt(gd.home?.score)||0,as=parseInt(gd.away?.score)||0;liveData[gid]={s1:hs,s2:as,live:true};}
+      }
+      if(found>0){
+        document.getElementById('livePill').classList.toggle('on',live>0);
+        setStatus('hi',live>0?'● NCAA live scores':'NCAA scores loaded','NCAA');
+        render(); return;
+      }
+    }
+  }catch(e){}
+  // ESPN fallback
+  try{
+    const EM={'texas tech':'textech','mississippi state':'msstate','mississippi st':'msstate','texas':'texas','tennessee':'tennessee','alabama':'alabama','ucla':'ucla','nebraska':'nebraska','arkansas':'arkansas'};
+    function nE(n){if(!n)return'';const s=n.toLowerCase().trim();for(const[k,v]of Object.entries(EM))if(s.includes(k))return v;return'';}
+    const r=await fetch('https://site.api.espn.com/apis/site/v2/sports/softball/college-softball/scoreboard?groups=90&limit=50',{cache:'no-cache'});
+    if(r.ok){
+      const data=await r.json();
+      let found=0,live=0;
+      for(const ev of(data.events||[])){
+        const comp=ev.competitions?.[0]; if(!comp) continue;
+        const cs=comp.competitors||[]; if(cs.length<2) continue;
+        const id0=nE(cs[0].team?.displayName||''),id1=nE(cs[1].team?.displayName||'');
+        if(!id0||!id1) continue;
+        const gid=findGID(id0,id1); if(!gid) continue;
+        found++;
+        const fin=comp.status?.type?.completed||false,inp=comp.status?.type?.name==='STATUS_IN_PROGRESS';
+        const s0=parseInt(cs[0].score)||0,s1=parseInt(cs[1].score)||0;
+        if(inp)live++;
+        if(fin&&!officialW[gid]){const w=s0>s1?id0:id1;if(w)officialW[gid]=w;}
+        if(inp){const[t1]=resolveTeams(gid);liveData[gid]={s1:t1?.id===id0?s0:s1,s2:t1?.id===id0?s1:s0,live:true};}
+      }
+      if(found>0){
+        document.getElementById('livePill').classList.toggle('on',live>0);
+        setStatus('warn',live>0?'● ESPN live':'ESPN scores loaded','ESPN');
+        render(); return;
+      }
+    }
+  }catch(e){}
+  setStatus('warn','Verified results loaded','');
+  render();
+}
+
+function findGID(a,b){
+  for(const[gid,d] of Object.entries(GD)){
+    if(d.teams){
+      if((d.teams[0]===a&&d.teams[1]===b)||(d.teams[0]===b&&d.teams[1]===a)) return gid;
+    } else {
+      const[t1,t2]=resolveTeams(gid);
+      if(t1&&t2&&((t1.id===a&&t2.id===b)||(t1.id===b&&t2.id===a))) return gid;
+    }
+  }
+  return null;
+}
+
+// ═══════════════════════
+//  ADMIN
+// ═══════════════════════
+function doAdminLogin(){
+  const pw=document.getElementById('adminPwInput').value;
+  if(pw===ADMIN_PW){
+    adminIn=true;
+    document.getElementById('adminLogin').style.display='none';
+    document.getElementById('adminPanel').style.display='block';
+    renderAdminGames();
+  } else {
+    document.getElementById('adminErr').style.display='block';
+    document.getElementById('adminPwInput').style.borderColor='var(--red)';
+  }
+}
+function doAdminLogout(){
+  adminIn=false;
+  document.getElementById('adminLogin').style.display='block';
+  document.getElementById('adminPanel').style.display='none';
+  document.getElementById('adminPwInput').value='';
+}
+function renderAdminGames(){
+  if(!adminIn) return;
+  const wrap=document.getElementById('adminGames'); wrap.innerHTML='';
+  const secs=[
+    {label:"Bracket A — Winner's",games:['g1','g2','g7']},
+    {label:"Bracket A — Loser's",games:['g5','g9','g11','g12']},
+    {label:"Bracket B — Winner's",games:['g3','g4','g8']},
+    {label:"Bracket B — Loser's",games:['g6','g10','g13','g14']},
+    {label:"Championship",games:['cf1','cf2','cf3']},
+  ];
+  for(const sec of secs){
+    const sh=document.createElement('div');sh.className='ag-sec';sh.textContent=sec.label;wrap.appendChild(sh);
+    for(const gid of sec.games){
+      const d=GD[gid],aw=officialW[gid];
+      const[t1,t2]=resolveTeams(gid);
+      const card=document.createElement('div');card.className='ag';
+      const hd=document.createElement('div');hd.className='ag-hd';
+      hd.innerHTML=`<span>${d.label} · ${d.date} · ${d.tv}</span>${aw?`<span class="done">✓ ${tm(aw)?.name||aw}</span>`:''}`;
+      card.appendChild(hd);
+      const teams=document.createElement('div');teams.className='ag-teams';
+      [t1,t2].forEach(team=>{
+        const b=document.createElement('button');
+        b.className='ag-btn'+(aw===team?.id?' sel':'');
+        b.textContent=team?(team.seed?'#'+team.seed+' ':'')+team.name:'TBD';
+        if(!team){b.disabled=true;}
+        else{
+          b.onclick=async()=>{
+            if(aw===team.id){
+              try{await supa('DELETE',`results?game_id=eq.${gid}`,null);}catch(e){}
+              delete officialW[gid];
+            } else {
+              try{await supa('POST','results',{game_id:gid,winner:team.id});}catch(e){}
+              officialW[gid]=team.id;
+            }
+            render();renderAdminGames();
+            showToast(aw===team.id?'Result cleared':team.name+' set ✓');
+          };
+        }
+        teams.appendChild(b);
+      });
+      card.appendChild(teams);wrap.appendChild(card);
+    }
+  }
+}
+
+// ═══════════════════════
+//  BUILD BRACKET SLOTS
+// ═══════════════════════
+function getEliminatedPick(gid){
+  const myP=picks[gid]; if(!myP) return null;
+  const[t1,t2]=resolveTeams(gid);
+  if(!t1||!t2) return null; // can't determine yet
+  if(myP!==t1.id&&myP!==t2.id) return tm(myP); // team not in this game
+  return null;
+}
+
+function mkSlot(gid,teamId,isTop,pickIsValid=true,userSlotTeam=null){
+  const ow=officialW[gid],ld=liveData[gid],myPick=picks[gid];
+  const team=tm(teamId);
+  const btn=document.createElement('button');
+  btn.className='tslot';
+  if(!team){
+    btn.classList.add('tbd-s');btn.disabled=true;
+    btn.innerHTML=`<span class="ts-seed"></span><span class="ts-name">TBD</span>`;
+    return btn;
+  }
+  const score=isTop?ld?.s1:ld?.s2;
+  const isPicked=pickIsValid&&myPick===teamId;
+  const otherPicked=pickIsValid&&myPick&&myPick!==teamId;
+  const isCorrect=pickIsValid&&submitted&&ow===teamId&&myPick===teamId;
+  const isWrong=pickIsValid&&submitted&&ow&&myPick===teamId&&ow!==teamId;
+  if(isCorrect) btn.classList.add('correct');
+  else if(isWrong) btn.classList.add('wrong');
+  else if(isPicked) btn.classList.add('picked');
+  else if(otherPicked) btn.classList.add('elim');
+  const checkLbl=ow===teamId?'<span class="ts-check">✓</span>':'';
+  const showGhost=submitted&&userSlotTeam&&teamId&&userSlotTeam.id!==teamId;
+  if(showGhost){
+    btn.style.cssText='flex-direction:column;align-items:stretch;height:auto;min-height:42px;padding:4px 8px 3px';
+    const row=document.createElement('div');
+    row.style.cssText='display:flex;align-items:center;gap:5px;min-height:18px';
+    row.innerHTML=`<span class="ts-seed">${team.seed||''}</span><span class="ts-name">${team.name}</span>${score!=null?`<span class="ts-score">${score}</span>`:''}${checkLbl}`;
+    if(ld?.live&&isTop){const lv=document.createElement('span');lv.className='live-tag';lv.style.cssText='position:relative;top:auto;right:auto';lv.textContent='LIVE';row.appendChild(lv);}
+    btn.appendChild(row);
+    const ghost=document.createElement('div');
+    ghost.style.cssText='font-size:9px;color:var(--red);text-decoration:line-through;font-family:var(--fh);font-weight:600;opacity:.8;line-height:1.2;overflow:hidden;text-overflow:ellipsis;white-space:nowrap';
+    ghost.textContent=(userSlotTeam.seed?userSlotTeam.seed+' ':'')+userSlotTeam.name;
+    btn.appendChild(ghost);
+  } else {
+    btn.innerHTML=`<span class="ts-seed">${team.seed||''}</span><span class="ts-name">${team.name}</span>${score!=null?`<span class="ts-score">${score}</span>`:''}${checkLbl}`;
+    if(ld?.live&&isTop){const lv=document.createElement('span');lv.className='live-tag';lv.textContent='LIVE';btn.appendChild(lv);}
+  }
+  if(!submitted) btn.onclick=()=>doPick(gid,teamId);
+  else btn.disabled=true;
+  return btn;
+}
+
+function mkMatch(gid,withConn=false,connDash=false){
+  const d=GD[gid];
+  const[t1,t2]=resolveTeams(gid);
+  const[p1,p2]=submitted?resolveTeamsFromPicks(gid):[null,null];
+  const outer=document.createElement('div');outer.className='match-wrap';
+
+  const inner=document.createElement('div');
+  const lbl=document.createElement('div');lbl.className='match-label';
+  lbl.innerHTML=`<span>${d.label} · ${d.tv} · ${d.date}</span><span class="ml-pts">${d.pts}pt${d.pts>1?'s':''}</span>`;
+  inner.appendChild(lbl);
+  const slots=document.createElement('div');slots.className='match-slots';
+  slots.appendChild(mkSlot(gid,t1?.id,true,true,p1?.id!==t1?.id?p1:null));
+  slots.appendChild(mkSlot(gid,t2?.id,false,true,p2?.id!==t2?.id?p2:null));
+  inner.appendChild(slots);
+  outer.appendChild(inner);
+
+  if(withConn){
+    const conn=document.createElement('div');
+    conn.className='conn-right'+(connDash?' dash':'');
+    conn.innerHTML='<div class="cr-top"></div><div class="cr-bot"></div>';
+    outer.style.alignItems='stretch';
+    outer.appendChild(conn);
+  }
+  return outer;
+}
+
+function hLine(dash=false){
+  const d=document.createElement('div');
+  d.className='h-conn'+(dash?' dash':'');
+  return d;
+}
+
+function colLabel(txt){
+  const d=document.createElement('div');d.className='round-label';d.textContent=txt;return d;
+}
+
+// ── DESKTOP BRACKET BUILDER ──
+// Layout: Bracket A on top (left→right), Bracket B below (left→right)
+// Winner's bracket flows left to right, loser's bracket below it
+// Championship on far right connecting both brackets
+function buildDesktop(){
+  const wrap=document.getElementById('desktopBracket');
+  wrap.innerHTML='';
+
+  // ─── HELPERS ───
+  function colLbl(txt){
+    const d=document.createElement('div');
+    d.className='round-label';d.textContent=txt;return d;
+  }
+  function spacer(h){
+    const d=document.createElement('div');d.style.height=h+'px';return d;
+  }
+  function hLine(dash=false){
+    const d=document.createElement('div');
+    d.style.cssText=`width:20px;flex-shrink:0;border-top:1.5px ${dash?'dashed':'solid'} var(--${dash?'gray2':'line'});align-self:center;margin-top:18px`;
+    return d;
+  }
+  // Right-side bracket connector — spans height of two matches + gap
+  function connRight(totalH, dash=false){
+    const d=document.createElement('div');
+    d.style.cssText=`display:flex;flex-direction:column;width:20px;flex-shrink:0;height:${totalH}px;margin-top:18px`;
+    const top=document.createElement('div');
+    top.style.cssText=`flex:1;border-top:1.5px ${dash?'dashed':'solid'} var(--${dash?'gray2':'line'});border-right:1.5px ${dash?'dashed':'solid'} var(--${dash?'gray2':'line'})`;
+    const bot=document.createElement('div');
+    bot.style.cssText=`flex:1;border-bottom:1.5px ${dash?'dashed':'solid'} var(--${dash?'gray2':'line'});border-right:1.5px ${dash?'dashed':'solid'} var(--${dash?'gray2':'line'})`;
+    d.appendChild(top);d.appendChild(bot);return d;
+  }
+  // Build a match card (label + 2 slots)
+  function mkMatchEl(gid){
+    const d=GD[gid];
+    const[t1,t2]=resolveTeams(gid);
+    const[p1,p2]=submitted?resolveTeamsFromPicks(gid):[null,null];
+    const wrap2=document.createElement('div');
+    wrap2.style.cssText='display:flex;flex-direction:column';
+    const lbl=document.createElement('div');
+    lbl.className='match-label';
+    lbl.innerHTML=`<span>${d.label}·${d.tv}·${d.date}</span><span class="ml-pts">${d.pts}pt${d.pts>1?'s':''}</span>`;
+    wrap2.appendChild(lbl);
+    wrap2.appendChild(mkSlot(gid,t1?.id,true,true,p1?.id!==t1?.id?p1:null));
+    wrap2.appendChild(mkSlot(gid,t2?.id,false,true,p2?.id!==t2?.id?p2:null));
+    return wrap2;
+  }
+  // A column: label on top, then match cards with optional connectors
+  function mkCol(label, games, conns){
+    const col=document.createElement('div');
+    col.style.cssText='display:flex;flex-direction:column;flex-shrink:0';
+    col.appendChild(colLbl(label));
+    games.forEach((gid,i)=>{
+      const row=document.createElement('div');
+      row.style.cssText='display:flex;flex-direction:row;align-items:stretch';
+      row.appendChild(mkMatchEl(gid));
+      if(conns&&conns[i]) row.appendChild(conns[i]);
+      col.appendChild(row);
+      if(i<games.length-1) col.appendChild(spacer(16));
+    });
+    return col;
+  }
+
+  // Slot height + label + gap between two matches in R1
+  const SLOT_H=42, LABEL_H=18, GAP=16;
+  // Total height of two R1 matches (for connector)
+  const twoMatchH = LABEL_H + SLOT_H*2 + GAP + LABEL_H + SLOT_H*2;
+  // Center match (G7/G8) sits at midpoint — offset from top
+  const centerOffset = LABEL_H + SLOT_H*2 + GAP/2 - SLOT_H - LABEL_H/2;
+
+  // ─────────────────────────────────────────
+  // BRACKET A
+  // ─────────────────────────────────────────
+  const bktAWrap=document.createElement('div');
+  bktAWrap.style.cssText='display:flex;flex-direction:column;margin-bottom:0';
+
+  const bktALbl=document.createElement('div');
+  bktALbl.className='bkt-section-label';bktALbl.textContent='Bracket A';
+  bktAWrap.appendChild(bktALbl);
+
+  // WINNER'S ROW A: G1+G2 → connector → G7 → connector → (to G11)
+  const winRowA=document.createElement('div');
+  winRowA.style.cssText='display:flex;flex-direction:row;align-items:flex-start';
+
+  // R1 col: G1 and G2, each with right connector
+  const r1A=document.createElement('div');
+  r1A.style.cssText='display:flex;flex-direction:column;flex-shrink:0';
+  r1A.appendChild(colLbl('Round 1'));
+  // G1 row with right connector
+  const g1row=document.createElement('div');g1row.style.cssText='display:flex;flex-direction:row;align-items:stretch';
+  g1row.appendChild(mkMatchEl('g1'));
+  // connector will be added after we know total height
+  r1A.appendChild(g1row);
+  r1A.appendChild(spacer(GAP));
+  const g2row=document.createElement('div');g2row.style.cssText='display:flex;flex-direction:row;align-items:stretch';
+  g2row.appendChild(mkMatchEl('g2'));
+  r1A.appendChild(g2row);
+
+  // Right-side connector spanning G1+gap+G2
+  const connA=connRight(LABEL_H+SLOT_H*2+GAP+LABEL_H+SLOT_H*2);
+  // Attach connector to r1A container (not individual rows)
+  const r1AWithConn=document.createElement('div');
+  r1AWithConn.style.cssText='display:flex;flex-direction:row;align-items:flex-start';
+  r1AWithConn.appendChild(r1A);
+  r1AWithConn.appendChild(connA);
+  winRowA.appendChild(r1AWithConn);
+
+  // H-line to G7
+  winRowA.appendChild(hLine());
+
+  // G7 col — vertically centered
+  const g7col=document.createElement('div');
+  g7col.style.cssText='display:flex;flex-direction:column;flex-shrink:0';
+  g7col.appendChild(colLbl('W Semis'));
+  g7col.appendChild(spacer(centerOffset - LABEL_H));
+  const g7row=document.createElement('div');g7row.style.cssText='display:flex;flex-direction:row;align-items:stretch';
+  g7row.appendChild(mkMatchEl('g7'));
+  g7col.appendChild(g7row);
+  winRowA.appendChild(g7col);
+
+  bktAWrap.appendChild(winRowA);
+
+  // LOSER'S ROW A: G5 → G9 → G11/G12
+  const loserDivA=document.createElement('div');
+  loserDivA.style.cssText='font-family:var(--fh);font-size:9px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--text3);margin:8px 0 4px;padding-top:8px;border-top:1.5px dashed var(--gray2)';
+  loserDivA.textContent="Loser's Bracket A";
+  bktAWrap.appendChild(loserDivA);
+
+  const losRowA=document.createElement('div');
+  losRowA.style.cssText='display:flex;flex-direction:row;align-items:flex-start';
+
+  // G5
+  const g5col=document.createElement('div');g5col.style.cssText='display:flex;flex-direction:column;flex-shrink:0';
+  g5col.appendChild(colLbl('L-Round 1'));
+  const g5row=document.createElement('div');g5row.style.cssText='display:flex;flex-direction:row;align-items:stretch';
+  g5row.appendChild(mkMatchEl('g5'));
+  g5col.appendChild(g5row);
+  losRowA.appendChild(g5col);
+  losRowA.appendChild(hLine(true));
+
+  // G9
+  const g9col=document.createElement('div');g9col.style.cssText='display:flex;flex-direction:column;flex-shrink:0';
+  g9col.appendChild(colLbl('L Semis'));
+  const g9row=document.createElement('div');g9row.style.cssText='display:flex;flex-direction:row;align-items:stretch';
+  g9row.appendChild(mkMatchEl('g9'));
+  g9col.appendChild(g9row);
+  losRowA.appendChild(g9col);
+  losRowA.appendChild(hLine());
+
+  // G11 + G12
+  const bfAcol=document.createElement('div');bfAcol.style.cssText='display:flex;flex-direction:column;flex-shrink:0';
+  bfAcol.appendChild(colLbl('Bracket Final'));
+  bfAcol.appendChild(mkMatchEl('g11'));
+  const ifnec1=document.createElement('div');ifnec1.className='ifnec-lbl';ifnec1.textContent='if necessary';bfAcol.appendChild(ifnec1);
+  bfAcol.appendChild(mkMatchEl('g12'));
+  losRowA.appendChild(bfAcol);
+
+  bktAWrap.appendChild(losRowA);
+
+  // ─────────────────────────────────────────
+  // CHAMPIONSHIP (far right, connecting A and B)
+  // ─────────────────────────────────────────
+  const champWrap=document.createElement('div');
+  champWrap.style.cssText='display:flex;flex-direction:column;flex-shrink:0;margin-left:20px;padding-left:20px;border-left:2px solid var(--red)';
+
+  const champTitleLbl=document.createElement('div');
+  champTitleLbl.className='bkt-section-label';champTitleLbl.style.marginTop='0';champTitleLbl.textContent='Championship';
+  champWrap.appendChild(champTitleLbl);
+
+  // Trophy box
+  const wins={};['cf1','cf2','cf3'].forEach(gid=>{const w=officialW[gid]||picks[gid];if(w)wins[w]=(wins[w]||0)+1;});
+  const champ=Object.entries(wins).find(([,v])=>v>=2)?.[0]||null;
+  const ct=tm(champ);
+  const tbox=document.createElement('div');tbox.className='champ-trophy-box';
+  tbox.innerHTML=`<span class="trophy">🏆</span><div class="clbl">2026 Champion</div><div class="cnm">${ct?`#${ct.seed||''} ${ct.name}`:'—'}</div>`;
+  champWrap.appendChild(tbox);
+
+  // CF1, CF2, CF3
+  const cfRow=document.createElement('div');cfRow.style.cssText='display:flex;flex-direction:row;align-items:flex-start;gap:0;margin-top:10px';
+  const cf1col=document.createElement('div');cf1col.style.cssText='display:flex;flex-direction:column;flex-shrink:0';
+  cf1col.appendChild(colLbl('Game 1 · Jun 3'));cf1col.appendChild(mkMatchEl('cf1'));cfRow.appendChild(cf1col);
+  cfRow.appendChild(hLine());
+  const cf2col=document.createElement('div');cf2col.style.cssText='display:flex;flex-direction:column;flex-shrink:0';
+  cf2col.appendChild(colLbl('Game 2 · Jun 4'));cf2col.appendChild(mkMatchEl('cf2'));cfRow.appendChild(cf2col);
+  cfRow.appendChild(hLine());
+  const cf3col=document.createElement('div');cf3col.style.cssText='display:flex;flex-direction:column;flex-shrink:0';
+  cf3col.appendChild(colLbl('Game 3 · Jun 5'));cf3col.appendChild(mkMatchEl('cf3'));
+  const ifnecCF=document.createElement('div');ifnecCF.className='ifnec-lbl';ifnecCF.textContent='if necessary';cf3col.appendChild(ifnecCF);
+  cfRow.appendChild(cf3col);
+  champWrap.appendChild(cfRow);
+
+  // ─────────────────────────────────────────
+  // BRACKET B (same structure as A)
+  // ─────────────────────────────────────────
+  const bktBWrap=document.createElement('div');
+  bktBWrap.style.cssText='display:flex;flex-direction:column;margin-top:24px';
+
+  const bktBLbl=document.createElement('div');
+  bktBLbl.className='bkt-section-label';bktBLbl.textContent='Bracket B';
+  bktBWrap.appendChild(bktBLbl);
+
+  const winRowB=document.createElement('div');
+  winRowB.style.cssText='display:flex;flex-direction:row;align-items:flex-start';
+
+  const r1B=document.createElement('div');r1B.style.cssText='display:flex;flex-direction:column;flex-shrink:0';
+  r1B.appendChild(colLbl('Round 1'));
+  const g3row=document.createElement('div');g3row.style.cssText='display:flex;flex-direction:row;align-items:stretch';g3row.appendChild(mkMatchEl('g3'));r1B.appendChild(g3row);
+  r1B.appendChild(spacer(GAP));
+  const g4row=document.createElement('div');g4row.style.cssText='display:flex;flex-direction:row;align-items:stretch';g4row.appendChild(mkMatchEl('g4'));r1B.appendChild(g4row);
+  const connB=connRight(LABEL_H+SLOT_H*2+GAP+LABEL_H+SLOT_H*2);
+  const r1BWithConn=document.createElement('div');r1BWithConn.style.cssText='display:flex;flex-direction:row;align-items:flex-start';
+  r1BWithConn.appendChild(r1B);r1BWithConn.appendChild(connB);
+  winRowB.appendChild(r1BWithConn);
+  winRowB.appendChild(hLine());
+
+  const g8col=document.createElement('div');g8col.style.cssText='display:flex;flex-direction:column;flex-shrink:0';
+  g8col.appendChild(colLbl('W Semis'));
+  g8col.appendChild(spacer(centerOffset - LABEL_H));
+  const g8row=document.createElement('div');g8row.style.cssText='display:flex;flex-direction:row;align-items:stretch';g8row.appendChild(mkMatchEl('g8'));g8col.appendChild(g8row);
+  winRowB.appendChild(g8col);
+  bktBWrap.appendChild(winRowB);
+
+  const loserDivB=document.createElement('div');
+  loserDivB.style.cssText='font-family:var(--fh);font-size:9px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--text3);margin:8px 0 4px;padding-top:8px;border-top:1.5px dashed var(--gray2)';
+  loserDivB.textContent="Loser's Bracket B";
+  bktBWrap.appendChild(loserDivB);
+
+  const losRowB=document.createElement('div');losRowB.style.cssText='display:flex;flex-direction:row;align-items:flex-start';
+  const g6col=document.createElement('div');g6col.style.cssText='display:flex;flex-direction:column;flex-shrink:0';
+  g6col.appendChild(colLbl('L-Round 1'));
+  const g6row=document.createElement('div');g6row.style.cssText='display:flex;flex-direction:row;align-items:stretch';g6row.appendChild(mkMatchEl('g6'));g6col.appendChild(g6row);
+  losRowB.appendChild(g6col);losRowB.appendChild(hLine(true));
+
+  const g10col=document.createElement('div');g10col.style.cssText='display:flex;flex-direction:column;flex-shrink:0';
+  g10col.appendChild(colLbl('L Semis'));
+  const g10row=document.createElement('div');g10row.style.cssText='display:flex;flex-direction:row;align-items:stretch';g10row.appendChild(mkMatchEl('g10'));g10col.appendChild(g10row);
+  losRowB.appendChild(g10col);losRowB.appendChild(hLine());
+
+  const bfBcol=document.createElement('div');bfBcol.style.cssText='display:flex;flex-direction:column;flex-shrink:0';
+  bfBcol.appendChild(colLbl('Bracket Final'));
+  bfBcol.appendChild(mkMatchEl('g13'));
+  const ifnec2=document.createElement('div');ifnec2.className='ifnec-lbl';ifnec2.textContent='if necessary';bfBcol.appendChild(ifnec2);
+  bfBcol.appendChild(mkMatchEl('g14'));
+  losRowB.appendChild(bfBcol);
+  bktBWrap.appendChild(losRowB);
+
+  // ─────────────────────────────────────────
+  // ASSEMBLE: Brackets A+B on left, Champ on right
+  // ─────────────────────────────────────────
+  const outerRow=document.createElement('div');
+  outerRow.style.cssText='display:flex;flex-direction:row;align-items:flex-start;gap:0';
+
+  const bracketsCol=document.createElement('div');
+  bracketsCol.style.cssText='display:flex;flex-direction:column';
+  bracketsCol.appendChild(bktAWrap);
+  bracketsCol.appendChild(bktBWrap);
+
+  outerRow.appendChild(bracketsCol);
+  outerRow.appendChild(champWrap);
+  wrap.appendChild(outerRow);
+}
+
+// ── MOBILE ──
+function buildMobile(){
+  const wrap=document.getElementById('mobBracket');wrap.innerHTML='';
+  function sec(t){const d=document.createElement('div');d.className='mob-sec';d.textContent=t;return d;}
+  function sub(t){const d=document.createElement('div');d.className='mob-sub';d.textContent=t;return d;}
+  function mc(gid){
+    const d=GD[gid],aw=officialW[gid],ld=liveData[gid],w=getW(gid);
+    const[t1,t2]=resolveTeams(gid);
+    const[p1,p2]=submitted?resolveTeamsFromPicks(gid):[null,null];
+    const wrap2=document.createElement('div');wrap2.className='mc'+(ld?.live?' live-s':'');
+    const tag=document.createElement('div');tag.className='mc-tag';
+    tag.innerHTML=`<span>${d.label} · ${d.tv} · ${d.date}</span><span class="mpt">${d.pts}pt${d.pts>1?'s':''}</span>`;
+    wrap2.appendChild(tag);
+    function mkT(team,isTop,userSlotTeam){
+      const btn=document.createElement('button');btn.className='tslot';btn.style.width='100%';btn.style.borderRadius='0';btn.style.borderTop='none';
+      const tid=team?.id;
+      const sc=isTop?ld?.s1:ld?.s2;
+      const isWrong=submitted&&aw&&picks[gid]===tid&&aw!==tid;
+      const isCorrect=submitted&&aw&&aw===tid&&picks[gid]===tid;
+      if(!team){btn.classList.add('tbd-s');btn.disabled=true;btn.innerHTML=`<span class="ts-seed"></span><span class="ts-name">TBD</span>`;return btn;}
+      if(isWrong)btn.classList.add('wrong');
+      else if(isCorrect)btn.classList.add('correct');
+      else if(picks[gid]===tid)btn.classList.add('picked');
+      else if(picks[gid]&&picks[gid]!==tid)btn.classList.add('elim');
+      const al=aw===tid?'<span class="ts-check">✓</span>':'';
+      const showGhost=submitted&&userSlotTeam&&tid&&userSlotTeam.id!==tid;
+      if(showGhost){
+        btn.style.flexDirection='column';btn.style.alignItems='stretch';btn.style.height='auto';btn.style.minHeight='38px';btn.style.paddingTop='3px';btn.style.paddingBottom='3px';
+        const row=document.createElement('div');
+        row.style.cssText='display:flex;align-items:center;gap:3px;min-height:16px';
+        row.innerHTML=`<span class="ts-seed">${team.seed||''}</span><span class="ts-name">${team.name}</span>${sc!=null?`<span class="ts-score">${sc}</span>`:''}${al}`;
+        btn.appendChild(row);
+        const ghost=document.createElement('div');
+        ghost.style.cssText='font-size:8px;color:var(--red);text-decoration:line-through;font-family:var(--fh);font-weight:600;opacity:.8;line-height:1.2;overflow:hidden;text-overflow:ellipsis;white-space:nowrap';
+        ghost.textContent=(userSlotTeam.seed?userSlotTeam.seed+' ':'')+userSlotTeam.name;
+        btn.appendChild(ghost);
+      } else {
+        btn.innerHTML=`<span class="ts-seed">${team.seed||''}</span><span class="ts-name">${team.name}</span>${sc!=null?`<span class="ts-score">${sc}</span>`:''}${al}`;
+      }
+      if(!submitted)btn.onclick=()=>doPick(gid,tid);else btn.disabled=true;
+      return btn;
+    }
+    wrap2.appendChild(mkT(t1,true,p1?.id!==t1?.id?p1:null));
+    wrap2.appendChild(mkT(t2,false,p2?.id!==t2?.id?p2:null));
+    return wrap2;
+  }
+  wrap.appendChild(sec('Bracket A'));
+  wrap.appendChild(sub("Winner's Bracket — Round 1"));wrap.appendChild(mc('g1'));wrap.appendChild(mc('g2'));
+  if(getW('g1')||getW('g2')){wrap.appendChild(sub("Winners Semis"));wrap.appendChild(mc('g7'));}
+  wrap.appendChild(sub("Loser's Bracket"));wrap.appendChild(mc('g5'));
+  if(getW('g5')||getW('g7')){wrap.appendChild(sub("Losers Semis"));wrap.appendChild(mc('g9'));}
+  if(getW('g7')&&getW('g9')){wrap.appendChild(sub("Bracket A Final"));wrap.appendChild(mc('g11'));wrap.appendChild(mc('g12'));}
+
+  wrap.appendChild(sec('Bracket B'));
+  wrap.appendChild(sub("Winner's Bracket — Round 1"));wrap.appendChild(mc('g3'));wrap.appendChild(mc('g4'));
+  if(getW('g3')||getW('g4')){wrap.appendChild(sub("Winners Semis"));wrap.appendChild(mc('g8'));}
+  wrap.appendChild(sub("Loser's Bracket"));wrap.appendChild(mc('g6'));
+  if(getW('g6')||getW('g8')){wrap.appendChild(sub("Losers Semis"));wrap.appendChild(mc('g10'));}
+  if(getW('g8')&&getW('g10')){wrap.appendChild(sub("Bracket B Final"));wrap.appendChild(mc('g13'));wrap.appendChild(mc('g14'));}
+
+  if(getW('g11')||getW('g12')||getW('g13')||getW('g14')){
+    wrap.appendChild(sec('Championship'));
+    wrap.appendChild(mc('cf1'));wrap.appendChild(mc('cf2'));wrap.appendChild(mc('cf3'));
+  }
+}
+
+// ── BANNER ──
+function renderBanner(){
+  const banner=document.getElementById('banner');
+  const titleEl=document.getElementById('bannerTitle');
+  const subEl=document.getElementById('bannerSub');
+  const subBtn=document.getElementById('subBtn');
+  const scoreEl=document.getElementById('scoreEl');
+  const resetBtn=document.getElementById('resetBtn');
+  if(submitted){
+    banner.classList.add('sub');
+    titleEl.textContent=myName?`${myName}'s Bracket — LOCKED 🔒`:'Bracket Locked 🔒';
+    const pts=calcScore(picks),max=maxPts(),done=Object.keys(officialW).length;
+    subEl.textContent=`${done} game${done!==1?'s':''} decided · ${max-pts} pts still available`;
+    subBtn.textContent='✓ Submitted';subBtn.disabled=true;subBtn.style.opacity='.55';
+    if(pts!==null){scoreEl.style.display='block';scoreEl.innerHTML=`${pts}<span>/ ${max} PTS</span>`;}
+    resetBtn.style.display='none';
+  } else {
+    banner.classList.remove('sub');
+    const m=countMissing();
+    if(m>0){titleEl.textContent=`${m} pick${m!==1?'s':''} remaining`;subEl.textContent='Pick every game — including already-played ones. Submit when done.';}
+    else{titleEl.textContent='All picks made — ready to submit!';subEl.textContent='Once submitted, picks are final and scored against real results.';}
+    scoreEl.style.display='none';subBtn.textContent='Submit Bracket';subBtn.disabled=false;subBtn.style.opacity='1';
+    resetBtn.style.display='';
+  }
+}
+
+function render(){buildDesktop();buildMobile();renderBanner();}
+
+// ═══════════════════════
+//  INIT
+// ═══════════════════════
+loadURL();
+// Restore entryId from localStorage if not in URL (survives page refresh)
+if(currentGroup&&!myEntryId){
+  const stored=localStorage.getItem('eid_'+currentGroup.id);
+  if(stored) myEntryId=stored;
+}
+officialW={...VERIFIED};
+render();
+fetchAll();
+// Handle group invite link or restore group
+if(pendingJoinCode && !currentGroup){
+  joinGroupById(pendingJoinCode).then(joined=>{ if(joined) switchTab('group'); });
+} else if(currentGroup){
+  loadGroupEntries().then(()=>{ if(document.getElementById('tab-group').classList.contains('active')) renderGroupTab(); });
+}
+setInterval(async()=>{await fetchAll();if(currentGroup)await loadGroupEntries();},60000);
+</script>
+</body>
+</html>

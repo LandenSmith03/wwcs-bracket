@@ -932,80 +932,68 @@ async function fetchAll(){
     const rows=await supa('GET','results?select=game_id,winner');
     if(Array.isArray(rows)) rows.forEach(r=>{if(r.winner)officialW[r.game_id]=r.winner;});
   }catch(e){}
-  // ESPN — fetch every tournament day sequentially so early-round results
-  // are in officialW before later rounds try to resolve via findGID
-  const EM={'texas tech':'textech','mississippi state':'msstate','mississippi st':'msstate','texas':'texas','tennessee':'tennessee','alabama':'alabama','ucla':'ucla','nebraska':'nebraska','arkansas':'arkansas'};
-  function nE(n){if(!n)return'';const s=n.toLowerCase().trim();for(const[k,v]of Object.entries(EM))if(s.includes(k))return v;return'';}
+  // Fetch all tournament days sequentially — early rounds must be in officialW
+  // before later rounds can resolve via findGID
   const today=new Date();
   const start=new Date(2026,4,28); // May 28 — tournament start
-  let espnFound=0,espnLive=0;
+  const EM={'texas tech':'textech','mississippi state':'msstate','mississippi st':'msstate','texas':'texas','tennessee':'tennessee','alabama':'alabama','ucla':'ucla','nebraska':'nebraska','arkansas':'arkansas'};
+  function nE(n){if(!n)return'';const s=n.toLowerCase().trim();for(const[k,v]of Object.entries(EM))if(s.includes(k))return v;return'';}
+  function nN(n){if(!n)return'';const s=n.toLowerCase().trim();for(const[k,v]of Object.entries(EM))if(s.includes(k))return v;return'';}
+  function processNCAAGame(gd,live,found){
+    const h=nN(gd.home?.names?.full||gd.home?.name||''),a=nN(gd.away?.names?.full||gd.away?.name||'');
+    if(!h||!a) return;
+    const gid=findGID(h,a); if(!gid) return;
+    found[0]++;
+    const st=(gd.gameState||gd.status||'').toLowerCase();
+    const fin=st.includes('final')||st==='f'||st==='complete'||st==='post';
+    const inp=st.includes('live')||st==='i'||st.includes('progress')||st.includes('inning');
+    if(inp)live[0]++;
+    if(fin&&!officialW[gid]){const hs=parseInt(gd.home?.score)||0,as=parseInt(gd.away?.score)||0;const w=hs>as?h:a;if(w)officialW[gid]=w;}
+    if(inp){const hs=parseInt(gd.home?.score)||0,as=parseInt(gd.away?.score)||0;liveData[gid]={s1:hs,s2:as,live:true};}
+  }
+  let totalFound=0,totalLive=0,srcLabel='';
   for(let d=new Date(start);d<=today;d.setDate(d.getDate()+1)){
-    const dateStr=`${d.getFullYear()}${String(d.getMonth()+1).padStart(2,'0')}${String(d.getDate()).padStart(2,'0')}`;
-    // Try postseason filter first, then no filter
-    const urls=[
-      `https://site.api.espn.com/apis/site/v2/sports/softball/college-softball/scoreboard?seasontype=3&dates=${dateStr}&limit=100`,
-      `https://site.api.espn.com/apis/site/v2/sports/softball/college-softball/scoreboard?dates=${dateStr}&limit=100`,
-    ];
-    let gotData=false;
-    for(const url of urls){
-      if(gotData) break;
-      try{
-        const r=await fetch(url,{cache:'no-cache'});
-        if(!r.ok) continue;
-        const data=await r.json();
-        const evs=data.events||[]; if(!evs.length) continue;
-        for(const ev of evs){
-          const comp=ev.competitions?.[0]; if(!comp) continue;
-          const cs=comp.competitors||[]; if(cs.length<2) continue;
+    const y=d.getFullYear(),mm=String(d.getMonth()+1).padStart(2,'0'),dd2=String(d.getDate()).padStart(2,'0');
+    const dateStr=`${y}${mm}${dd2}`;
+    let gotDate=false;
+    // 1) ESPN — no season-type filter, just date
+    if(!gotDate){try{
+      const r=await fetch(`https://site.api.espn.com/apis/site/v2/sports/softball/college-softball/scoreboard?dates=${dateStr}&limit=100`,{cache:'no-cache'});
+      if(r.ok){const data=await r.json();const evs=data.events||[];let f=0,lv=0;
+        for(const ev of evs){const comp=ev.competitions?.[0];if(!comp)continue;const cs=comp.competitors||[];if(cs.length<2)continue;
           const id0=nE(cs[0].team?.displayName||cs[0].team?.shortDisplayName||''),id1=nE(cs[1].team?.displayName||cs[1].team?.shortDisplayName||'');
-          if(!id0||!id1) continue;
-          const gid=findGID(id0,id1); if(!gid) continue;
-          espnFound++;
+          if(!id0||!id1)continue;const gid=findGID(id0,id1);if(!gid)continue;f++;
           const fin=comp.status?.type?.completed||false,inp=comp.status?.type?.name==='STATUS_IN_PROGRESS';
           const s0=parseInt(cs[0].score)||0,s1=parseInt(cs[1].score)||0;
-          if(inp)espnLive++;
+          if(inp)lv++;
           if(fin&&!officialW[gid]){const w=s0>s1?id0:id1;if(w)officialW[gid]=w;}
           if(inp){const[t1]=resolveTeams(gid);liveData[gid]={s1:t1?.id===id0?s0:s1,s2:t1?.id===id0?s1:s0,live:true};}
         }
-        gotData=true;
-      }catch(e){}
-    }
+        if(f>0){totalFound+=f;totalLive+=lv;srcLabel='ESPN';gotDate=true;}
+      }
+    }catch(e){}}
+    // 2) NCAA official casablanca API
+    if(!gotDate){try{
+      const r=await fetch(`https://data.ncaa.com/casablanca/scoreboard/softball/d1/${y}/${mm}/${dd2}/scoreboard.json`,{cache:'no-cache'});
+      if(r.ok){const data=await r.json();const f=[0],lv=[0];
+        for(const g of(data.games||[])){processNCAAGame(g.game||g,lv,f);}
+        if(f[0]>0){totalFound+=f[0];totalLive+=lv[0];srcLabel='NCAA';gotDate=true;}
+      }
+    }catch(e){}}
+    // 3) ncaa-api.henrygd.me proxy
+    if(!gotDate){try{
+      const r=await fetch(`https://ncaa-api.henrygd.me/scoreboard/softball/d1/${y}/${mm}/${dd2}`,{cache:'no-cache'});
+      if(r.ok){const data=await r.json();const f=[0],lv=[0];
+        for(const g of(data.games||[])){processNCAAGame(g.game||g,lv,f);}
+        if(f[0]>0){totalFound+=f[0];totalLive+=lv[0];if(!srcLabel)srcLabel='NCAA';gotDate=true;}
+      }
+    }catch(e){}}
   }
-  if(espnFound>0){
-    document.getElementById('livePill').classList.toggle('on',espnLive>0);
-    setStatus('warn',espnLive>0?'● ESPN live':'ESPN scores loaded','ESPN');
+  if(totalFound>0){
+    document.getElementById('livePill').classList.toggle('on',totalLive>0);
+    setStatus(srcLabel==='NCAA'?'hi':'warn',totalLive>0?`● ${srcLabel} live`:`${srcLabel} scores loaded`,srcLabel);
     render(); return;
   }
-  // NCAA fallback — today only
-  try{
-    const mm=String(today.getMonth()+1).padStart(2,'0');
-    const dd=String(today.getDate()).padStart(2,'0');
-    const r=await fetch(`https://ncaa-api.henrygd.me/scoreboard/softball/d1/${today.getFullYear()}/${mm}/${dd}`,{cache:'no-cache'});
-    if(r.ok){
-      const data=await r.json();
-      const NM={'texas tech':'textech','mississippi state':'msstate','texas':'texas','tennessee':'tennessee','alabama':'alabama','ucla':'ucla','nebraska':'nebraska','arkansas':'arkansas'};
-      function nN(n){if(!n)return'';const s=n.toLowerCase().trim();for(const[k,v]of Object.entries(NM))if(s.includes(k))return v;return'';}
-      let found=0,live=0;
-      for(const g of(data.games||[])){
-        const gd=g.game||g;
-        const h=nN(gd.home?.names?.full||gd.home?.name||''),a=nN(gd.away?.names?.full||gd.away?.name||'');
-        if(!h||!a) continue;
-        const gid=findGID(h,a); if(!gid) continue;
-        found++;
-        const st=(gd.gameState||gd.status||'').toLowerCase();
-        const fin=st.includes('final')||st==='f'||st==='complete'||st==='post';
-        const inp=st.includes('live')||st==='i'||st.includes('progress')||st.includes('inning');
-        if(inp)live++;
-        if(fin&&!officialW[gid]){const hs=parseInt(gd.home?.score)||0,as=parseInt(gd.away?.score)||0;const w=hs>as?h:a;if(w)officialW[gid]=w;}
-        if(inp){const hs=parseInt(gd.home?.score)||0,as=parseInt(gd.away?.score)||0;liveData[gid]={s1:hs,s2:as,live:true};}
-      }
-      if(found>0){
-        document.getElementById('livePill').classList.toggle('on',live>0);
-        setStatus('hi',live>0?'● NCAA live scores':'NCAA scores loaded','NCAA');
-        render(); return;
-      }
-    }
-  }catch(e){}
   setStatus('warn','Verified results loaded','');
   render();
 }

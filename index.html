@@ -638,6 +638,7 @@ async function confirmName(){
   if(!n){document.getElementById('nameInput').style.borderColor='var(--red)';return;}
   myName=n; submitted=true; closeModal();
   save();
+  localStorage.setItem('myBracket',JSON.stringify({picks,myName,submitted:true}));
   // If in a group, save entry to Supabase
   if(currentGroup){
     await saveGroupEntry();
@@ -1061,6 +1062,7 @@ function renderAdminGames(){
               officialW[gid]=team.id;
             }
             render();renderAdminGames();
+            if(currentGroup&&document.getElementById('tab-group').classList.contains('active')) renderGroupTab();
             showToast(aw===team.id?'Result cleared':team.name+' set ✓');
           };
         }
@@ -1518,6 +1520,13 @@ function render(){buildDesktop();buildMobile();renderBanner();}
 //  INIT
 // ═══════════════════════
 loadURL();
+// If URL has no picks (e.g. invite link), restore submitted bracket from localStorage
+if(Object.keys(picks).length===0&&!submitted){
+  try{
+    const s=localStorage.getItem('myBracket');
+    if(s){const st=JSON.parse(s);if(st.submitted&&st.picks&&Object.keys(st.picks).length>0){picks=st.picks;submitted=st.submitted;if(st.myName)myName=st.myName;}}
+  }catch(e){}
+}
 // Restore entryId from localStorage if not in URL (survives page refresh)
 if(currentGroup&&!myEntryId){
   const stored=localStorage.getItem('eid_'+currentGroup.id);
@@ -1532,7 +1541,13 @@ if(pendingJoinCode && !currentGroup){
 } else if(currentGroup){
   loadGroupEntries().then(()=>{ if(document.getElementById('tab-group').classList.contains('active')) renderGroupTab(); });
 }
-setInterval(async()=>{await fetchAll();if(currentGroup)await loadGroupEntries();},60000);
+setInterval(async()=>{
+  await fetchAll();
+  if(currentGroup){
+    await loadGroupEntries();
+    if(document.getElementById('tab-group').classList.contains('active')) renderGroupTab();
+  }
+},60000);
 </script>
 </body>
 </html>

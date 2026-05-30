@@ -932,42 +932,52 @@ async function fetchAll(){
     const rows=await supa('GET','results?select=game_id,winner');
     if(Array.isArray(rows)) rows.forEach(r=>{if(r.winner)officialW[r.game_id]=r.winner;});
   }catch(e){}
-  // ESPN — primary live source (try postseason/WCWS, then unfiltered fallback)
+  // ESPN — fetch every tournament day sequentially so early-round results
+  // are in officialW before later rounds try to resolve via findGID
   const EM={'texas tech':'textech','mississippi state':'msstate','mississippi st':'msstate','texas':'texas','tennessee':'tennessee','alabama':'alabama','ucla':'ucla','nebraska':'nebraska','arkansas':'arkansas'};
   function nE(n){if(!n)return'';const s=n.toLowerCase().trim();for(const[k,v]of Object.entries(EM))if(s.includes(k))return v;return'';}
-  const espnUrls=[
-    'https://site.api.espn.com/apis/site/v2/sports/softball/college-softball/scoreboard?seasontype=3&limit=100',
-    'https://site.api.espn.com/apis/site/v2/sports/softball/college-softball/scoreboard?limit=100',
-  ];
-  for(const espnUrl of espnUrls){
-    try{
-      const r=await fetch(espnUrl,{cache:'no-cache'});
-      if(!r.ok) continue;
-      const data=await r.json();
-      let found=0,live=0;
-      for(const ev of(data.events||[])){
-        const comp=ev.competitions?.[0]; if(!comp) continue;
-        const cs=comp.competitors||[]; if(cs.length<2) continue;
-        const id0=nE(cs[0].team?.displayName||cs[0].team?.shortDisplayName||''),id1=nE(cs[1].team?.displayName||cs[1].team?.shortDisplayName||'');
-        if(!id0||!id1) continue;
-        const gid=findGID(id0,id1); if(!gid) continue;
-        found++;
-        const fin=comp.status?.type?.completed||false,inp=comp.status?.type?.name==='STATUS_IN_PROGRESS';
-        const s0=parseInt(cs[0].score)||0,s1=parseInt(cs[1].score)||0;
-        if(inp)live++;
-        if(fin&&!officialW[gid]){const w=s0>s1?id0:id1;if(w)officialW[gid]=w;}
-        if(inp){const[t1]=resolveTeams(gid);liveData[gid]={s1:t1?.id===id0?s0:s1,s2:t1?.id===id0?s1:s0,live:true};}
-      }
-      if(found>0){
-        document.getElementById('livePill').classList.toggle('on',live>0);
-        setStatus('warn',live>0?'● ESPN live':'ESPN scores loaded','ESPN');
-        render(); return;
-      }
-    }catch(e){}
+  const today=new Date();
+  const start=new Date(2026,4,28); // May 28 — tournament start
+  let espnFound=0,espnLive=0;
+  for(let d=new Date(start);d<=today;d.setDate(d.getDate()+1)){
+    const dateStr=`${d.getFullYear()}${String(d.getMonth()+1).padStart(2,'0')}${String(d.getDate()).padStart(2,'0')}`;
+    // Try postseason filter first, then no filter
+    const urls=[
+      `https://site.api.espn.com/apis/site/v2/sports/softball/college-softball/scoreboard?seasontype=3&dates=${dateStr}&limit=100`,
+      `https://site.api.espn.com/apis/site/v2/sports/softball/college-softball/scoreboard?dates=${dateStr}&limit=100`,
+    ];
+    let gotData=false;
+    for(const url of urls){
+      if(gotData) break;
+      try{
+        const r=await fetch(url,{cache:'no-cache'});
+        if(!r.ok) continue;
+        const data=await r.json();
+        const evs=data.events||[]; if(!evs.length) continue;
+        for(const ev of evs){
+          const comp=ev.competitions?.[0]; if(!comp) continue;
+          const cs=comp.competitors||[]; if(cs.length<2) continue;
+          const id0=nE(cs[0].team?.displayName||cs[0].team?.shortDisplayName||''),id1=nE(cs[1].team?.displayName||cs[1].team?.shortDisplayName||'');
+          if(!id0||!id1) continue;
+          const gid=findGID(id0,id1); if(!gid) continue;
+          espnFound++;
+          const fin=comp.status?.type?.completed||false,inp=comp.status?.type?.name==='STATUS_IN_PROGRESS';
+          const s0=parseInt(cs[0].score)||0,s1=parseInt(cs[1].score)||0;
+          if(inp)espnLive++;
+          if(fin&&!officialW[gid]){const w=s0>s1?id0:id1;if(w)officialW[gid]=w;}
+          if(inp){const[t1]=resolveTeams(gid);liveData[gid]={s1:t1?.id===id0?s0:s1,s2:t1?.id===id0?s1:s0,live:true};}
+        }
+        gotData=true;
+      }catch(e){}
+    }
   }
-  // NCAA fallback
+  if(espnFound>0){
+    document.getElementById('livePill').classList.toggle('on',espnLive>0);
+    setStatus('warn',espnLive>0?'● ESPN live':'ESPN scores loaded','ESPN');
+    render(); return;
+  }
+  // NCAA fallback — today only
   try{
-    const today=new Date();
     const mm=String(today.getMonth()+1).padStart(2,'0');
     const dd=String(today.getDate()).padStart(2,'0');
     const r=await fetch(`https://ncaa-api.henrygd.me/scoreboard/softball/d1/${today.getFullYear()}/${mm}/${dd}`,{cache:'no-cache'});
@@ -978,9 +988,7 @@ async function fetchAll(){
       let found=0,live=0;
       for(const g of(data.games||[])){
         const gd=g.game||g;
-        const fullHome=gd.home?.names?.full||gd.home?.name||'';
-        const fullAway=gd.away?.names?.full||gd.away?.name||'';
-        const h=nN(fullHome),a=nN(fullAway);
+        const h=nN(gd.home?.names?.full||gd.home?.name||''),a=nN(gd.away?.names?.full||gd.away?.name||'');
         if(!h||!a) continue;
         const gid=findGID(h,a); if(!gid) continue;
         found++;

@@ -20,7 +20,10 @@ jobs:
           python-version: '3.12'
 
       - name: Install dependencies
-        run: pip install requests
+        run: pip install requests playwright
+
+      - name: Install Chromium browser
+        run: playwright install chromium --with-deps
 
       - name: Fetch and update scores
         run: python .github/scripts/update_scores.py

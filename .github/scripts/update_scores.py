@@ -60,6 +60,7 @@ VERIFIED = {
     'g5': 'texas',      # Texas beat Mississippi State — May 29
     'g6': 'ucla',       # UCLA beat Arkansas — May 29
     'g7': 'tennessee',  # Tennessee beat Texas Tech — May 30
+    'g8': 'alabama',    # Alabama beat Nebraska 5-1 — May 30
 }
 
 
@@ -133,149 +134,138 @@ def supa_upsert(gid, winner):
     return r.ok
 
 
-def _extract_json_markers(text, markers):
-    """Try each marker string, return parsed JSON object if found."""
-    for marker in markers:
-        idx = text.find(marker)
+def _espn_events_from_page(content, label):
+    """Extract ESPN scoreboard events from a fully-rendered page."""
+    for marker in ["window['__espnfitt__']=", 'window["__espnfitt__"]=']:
+        idx = content.find(marker)
         if idx == -1:
             continue
-        brace = text.find('{', idx + len(marker))
+        brace = content.find('{', idx + len(marker))
         if brace == -1:
             continue
         try:
-            data, _ = json.JSONDecoder().raw_decode(text, brace)
-            return data
-        except Exception:
-            pass
-    return None
+            data, _ = json.JSONDecoder().raw_decode(content, brace)
+            evs = (data.get('page', {})
+                       .get('content', {})
+                       .get('scoreboard', {})
+                       .get('events', []))
+            print(f'  {label}: {len(evs)} events')
+            return evs
+        except Exception as e:
+            print(f'  {label} JSON parse error: {e}')
+    print(f'  {label}: no __espnfitt__ in {len(content)}-char page')
+    return []
 
 
 def fetch_espn():
-    """Fetch ESPN scoreboard using a cookie session to bypass basic bot checks."""
-    session = requests.Session()
-    session.headers.update({
-        **HEADERS,
-        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-        'Accept-Encoding': 'gzip, deflate, br',
-        'Connection': 'keep-alive',
-    })
+    """Use headless Chromium (bypasses Cloudflare) to scrape ESPN scoreboard."""
+    today = datetime.now(timezone.utc)
+    all_events = []
     try:
-        # Seed cookies by visiting homepage first
-        session.get('https://www.espn.com/', timeout=10)
-    except Exception:
-        pass
-
-    for url in [
-        'https://www.espn.com/college-softball/scoreboard/',
-        'https://www.espn.com/college-softball/scoreboard/_/seasontype/3',
-    ]:
-        try:
-            r = session.get(url, timeout=15)
-            print(f'ESPN {url.split("scoreboard")[1] or "/"}: HTTP {r.status_code} ({len(r.text)} chars)')
-            if not r.ok and r.status_code != 202:
-                continue
-            text = r.text
-            print(f'  Page snippet: {text[:200].strip()!r}')
-            data = _extract_json_markers(text, [
-                "window['__espnfitt__']=",
-                'window["__espnfitt__"]=',
-                '__espnfitt__=',
-            ])
-            if data:
-                evs = (data.get('page', {})
-                           .get('content', {})
-                           .get('scoreboard', {})
-                           .get('events', []))
-                print(f'  → {len(evs)} events')
-                if evs:
-                    return evs
-                print(f'  Keys found: {list(data.keys())[:8]}')
-            else:
-                print('  No __espnfitt__ marker found in page')
-        except Exception as e:
-            print(f'ESPN error: {e}')
-    return []
-
-
-def _search_for_games(data, depth=0):
-    """Recursively search embedded page JSON for a list of game objects."""
-    if depth > 8:
-        return []
-    if isinstance(data, list) and data and isinstance(data[0], dict):
-        if any(k in data[0] for k in ('home', 'away', 'homeTeam', 'awayTeam', 'competitions')):
-            return data
-        for item in data:
-            r = _search_for_games(item, depth + 1)
-            if r:
-                return r
-    elif isinstance(data, dict):
-        for k in ('games', 'contests', 'events', 'matches', 'items', 'scoreboard'):
-            if k in data:
-                r = _search_for_games(data[k], depth + 1)
-                if r:
-                    return r
-        for v in data.values():
-            if isinstance(v, (dict, list)):
-                r = _search_for_games(v, depth + 1)
-                if r:
-                    return r
-    return []
+        from playwright.sync_api import sync_playwright
+        with sync_playwright() as p:
+            browser = p.chromium.launch(headless=True)
+            ctx = browser.new_context(
+                user_agent='Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+                locale='en-US',
+            )
+            page = ctx.new_page()
+            # Check today and yesterday — postseason games may appear on either date
+            for delta in range(2):
+                d = today - timedelta(days=delta)
+                date_str = d.strftime('%Y%m%d')
+                url = f'https://www.espn.com/college-softball/scoreboard/_/date/{date_str}'
+                try:
+                    page.goto(url, wait_until='networkidle', timeout=30000)
+                    evs = _espn_events_from_page(page.content(), date_str)
+                    all_events.extend(evs)
+                except Exception as e:
+                    print(f'  ESPN {date_str} error: {e}')
+            browser.close()
+    except ImportError:
+        print('Playwright not installed')
+    except Exception as e:
+        print(f'ESPN Playwright error: {e}')
+    return all_events
 
 
 def fetch_ncaa():
-    """Try Yahoo Sports and NCAA.com for embedded score data as ESPN fallback."""
-    page_headers = {
-        **HEADERS,
-        'Accept': 'text/html,application/xhtml+xml,*/*',
-    }
+    """Scrape stats.ncaa.org — the source softballR uses, no Cloudflare protection."""
+    import re
+    today = datetime.now(timezone.utc)
+    all_games = []
+    headers = {**HEADERS, 'Accept': 'text/html,application/xhtml+xml,*/*',
+               'Referer': 'https://stats.ncaa.org/'}
 
-    # Yahoo Sports — embeds Redux state with score data
-    try:
-        r = requests.get(
-            'https://sports.yahoo.com/college-softball/scoreboard/',
-            headers={**page_headers, 'Referer': 'https://sports.yahoo.com/'},
-            timeout=15,
-        )
-        print(f'Yahoo Sports: HTTP {r.status_code} ({len(r.text)} chars)')
-        if r.ok:
-            text = r.text
-            print(f'  Page snippet: {text[:200].strip()!r}')
-            data = _extract_json_markers(text, [
-                'window.App={',
-                'window.__REDUX_STATE__=',
-                'window.__INITIAL_STATE__=',
-                '"scoreboard":{"games":',
-            ])
-            if data:
-                games = _search_for_games(data)
-                if games:
-                    print(f'  → {len(games)} games (Yahoo)')
-                    return games
-                print(f'  Yahoo keys: {list(data.keys())[:8]}')
-            else:
-                print('  No known marker in Yahoo page')
-    except Exception as e:
-        print(f'Yahoo error: {e}')
-
-    # NCAA.com — log what markers exist so we can adapt
-    for url in ['https://www.ncaa.com/championships/softball/d1',
-                'https://www.ncaa.com/sports/softball/d1']:
+    for delta in range(5):
+        d = today - timedelta(days=delta)
+        date_str = d.strftime('%m%%2F%d%%2F%Y')  # URL-encoded MM/DD/YYYY
+        url = f'https://stats.ncaa.org/contests/scoreboards?division=1&sport_code=WSB&game_date={date_str}'
         try:
-            r = requests.get(url, headers={**page_headers, 'Referer': 'https://www.ncaa.com/'},
-                             timeout=15)
-            print(f'NCAA {url.split(".com")[1]}: HTTP {r.status_code}')
+            r = requests.get(url, headers=headers, timeout=15)
+            print(f'NCAA stats {d.strftime("%Y%m%d")}: HTTP {r.status_code} ({len(r.text)} chars)')
+            if r.status_code == 403:
+                print('  Blocked — stopping NCAA stats')
+                break
             if not r.ok:
                 continue
-            text = r.text
-            # Log which JS data markers are present so we know what to target
-            for marker in ['__NEXT_DATA__', '__REDUX_STATE__', '__INITIAL_STATE__',
-                           'window.__data', 'window.initialData', 'window.pageData']:
-                if marker in text:
-                    print(f'  Found marker: {marker}')
+            games = _parse_ncaa_stats_html(r.text)
+            if games:
+                print(f'  → {len(games)} games parsed')
+                all_games.extend(games)
+            else:
+                # Log snippet so we can see the structure and refine the parser
+                clean = re.sub(r'<[^>]+>', ' ', r.text)
+                clean = re.sub(r'\s+', ' ', clean).strip()
+                print(f'  Text snippet: {clean[:400]!r}')
         except Exception as e:
-            print(f'NCAA error: {e}')
+            print(f'NCAA stats error: {e}')
+    return all_games
 
-    return []
+
+def _parse_ncaa_stats_html(html):
+    """
+    Parse stats.ncaa.org scoreboard HTML.
+    Looks for our 8 known team names and associated scores/status.
+    """
+    import re
+
+    # Strip scripts, styles, and tags to get readable text blocks
+    html = re.sub(r'<script[^>]*>.*?</script>', ' ', html, flags=re.DOTALL | re.IGNORECASE)
+    html = re.sub(r'<style[^>]*>.*?</style>', ' ', html, flags=re.DOTALL | re.IGNORECASE)
+    text = re.sub(r'<[^>]+>', ' ', html)
+    text = re.sub(r'[ \t]+', ' ', text)
+
+    # Known team name variants as they appear on stats.ncaa.org
+    TEAM_NAMES = {
+        'Texas Tech': 'textech', 'Mississippi State': 'msstate',
+        'Mississippi St.': 'msstate', 'Tennessee': 'tennessee',
+        'Texas': 'texas', 'Alabama': 'alabama', 'UCLA': 'ucla',
+        'Nebraska': 'nebraska', 'Arkansas': 'arkansas',
+    }
+
+    games = []
+    # Find lines containing "Final" — each final game block has two teams + scores
+    # Pattern: "TeamA N TeamB M Final" or similar
+    final_blocks = re.finditer(
+        r'((?:' + '|'.join(re.escape(t) for t in TEAM_NAMES) + r'))'
+        r'\s+(\d+)\s+'
+        r'((?:' + '|'.join(re.escape(t) for t in TEAM_NAMES) + r'))'
+        r'\s+(\d+)\s+'
+        r'(Final|F\b)',
+        text, re.IGNORECASE
+    )
+    for m in final_blocks:
+        t1_raw, s1, t2_raw, s2, _ = m.groups()
+        t1 = next((v for k, v in TEAM_NAMES.items() if k.lower() == t1_raw.lower()), None)
+        t2 = next((v for k, v in TEAM_NAMES.items() if k.lower() == t2_raw.lower()), None)
+        if t1 and t2 and t1 != t2:
+            games.append({
+                'home': {'names': {'full': t1_raw}, 'score': str(s1)},
+                'away': {'names': {'full': t2_raw}, 'score': str(s2)},
+                'gameState': 'final',
+            })
+    return games
 
 
 def process_espn_events(events, winners):

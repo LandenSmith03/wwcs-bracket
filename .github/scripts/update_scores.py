@@ -167,11 +167,17 @@ def _espn_events_from_page(content, label):
             if evs:
                 e0 = evs[0]
                 print(f'  First event keys: {list(e0.keys())}')
-                comp0 = (e0.get('competitions') or e0.get('cmptnrs') or [{}])[0]
-                print(f'  First comp keys: {list(comp0.keys())}')
-                cs = comp0.get('competitors') or comp0.get('cmpttrs') or []
+                # competitors is directly on event (not nested under competitions)
+                cs = e0.get('competitors', [])
+                print(f'  competitors count: {len(cs)}')
                 if cs:
-                    print(f'  First competitor keys: {list(cs[0].keys())}')
+                    print(f'  competitor[0] keys: {list(cs[0].keys())}')
+                    print(f'  competitor[0] sample: {str(cs[0])[:300]}')
+                # also log teams and status structure
+                print(f'  teams: {str(e0.get("teams", {}))[:300]}')
+                print(f'  status: {str(e0.get("status", {}))[:200]}')
+                print(f'  completed: {e0.get("completed")}')
+                print(f'  note: {e0.get("note", {})}')
             return evs
         except Exception as e:
             print(f'  {label} JSON parse error: {e}')

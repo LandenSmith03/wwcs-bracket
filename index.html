@@ -331,6 +331,7 @@ html, body { min-height: 100%; background: var(--off); color: var(--text); font-
     </div>
     <div class="live-pill" id="livePill"><span class="live-dot"></span>Live</div>
     <div class="hd-right">
+      <button class="btn" id="authBtn" onclick="openLoginModal()">Sign In</button>
       <button class="btn" id="resetBtn" onclick="confirmReset()">Reset</button>
       <button class="btn white" onclick="shareLink()">Share 🔗</button>
     </div>
@@ -460,8 +461,30 @@ html, body { min-height: 100%; background: var(--off); color: var(--text); font-
   </div>
 </div>
 
+<!-- LOGIN MODAL -->
+<div class="modal-bg" id="loginModalBg" onclick="if(event.target===this)closeLoginModal()" style="display:none">
+  <div class="modal" style="max-width:320px">
+    <h2>Save Your Bracket</h2>
+    <p style="font-size:13px;color:var(--text2);margin-bottom:16px">Sign in with your email to restore your bracket and group on any device — no password needed.</p>
+    <div id="loginFormDiv">
+      <input type="email" id="loginEmail" placeholder="your@email.com" style="width:100%;box-sizing:border-box;padding:10px 12px;border:2px solid var(--border);border-radius:var(--r1);font-size:14px;margin-bottom:10px;outline:none;font-family:var(--fb)" onkeydown="if(event.key==='Enter')sendMagicLink()">
+      <div class="modal-btns">
+        <button class="btn-navy" onclick="closeLoginModal()">Skip</button>
+        <button class="btn-red" onclick="sendMagicLink()">Send Link ✉️</button>
+      </div>
+    </div>
+    <div id="loginSentDiv" style="display:none;text-align:center;padding:8px 0">
+      <div style="font-size:40px;margin-bottom:10px">📬</div>
+      <p style="font-weight:700;margin-bottom:6px">Check your email!</p>
+      <p style="font-size:12px;color:var(--text2);margin-bottom:16px">Click the link we sent to sign in. You'll be brought back here automatically.</p>
+      <button class="btn-navy" onclick="closeLoginModal()">Close</button>
+    </div>
+  </div>
+</div>
+
 <div class="toast" id="toast"></div>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <script>
 // ═══════════════════════
 //  SUPABASE CONFIG
@@ -469,15 +492,87 @@ html, body { min-height: 100%; background: var(--off); color: var(--text); font-
 const SUPA_URL='https://poklxjqcgggjlzzlutkh.supabase.co';
 const SUPA_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBva2x4anFjZ2dnamx6emx1dGtoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAwMTcwMTUsImV4cCI6MjA5NTU5MzAxNX0.Q1XHkfRhvaUsIxUngdRvkVkVixOax0m3sRN2ZKLTXJs';
 const ADMIN_PW='wcws2026admin';
+const supaClient=window.supabase.createClient(SUPA_URL,SUPA_KEY);
+let currentUser=null;
 
 async function supa(method,path,body){
   const prefer=method==='POST'?'return=representation,resolution=merge-duplicates':'';
-  const opts={method,headers:{'apikey':SUPA_KEY,'Authorization':'Bearer '+SUPA_KEY,'Content-Type':'application/json','Prefer':prefer}};
+  const sess=(await supaClient.auth.getSession()).data?.session;
+  const token=sess?.access_token||SUPA_KEY;
+  const opts={method,headers:{'apikey':SUPA_KEY,'Authorization':'Bearer '+token,'Content-Type':'application/json','Prefer':prefer}};
   if(body)opts.body=JSON.stringify(body);
   const r=await fetch(SUPA_URL+'/rest/v1/'+path,opts);
   if(!r.ok)throw new Error(await r.text());
   return r.json().catch(()=>null);
 }
+
+// ═══════════════════════
+//  AUTH
+// ═══════════════════════
+function openLoginModal(){
+  document.getElementById('loginModalBg').style.display='flex';
+  document.getElementById('loginFormDiv').style.display='block';
+  document.getElementById('loginSentDiv').style.display='none';
+  const e=document.getElementById('loginEmail');e.value='';e.style.borderColor='';
+}
+function closeLoginModal(){document.getElementById('loginModalBg').style.display='none';}
+
+async function sendMagicLink(){
+  const email=document.getElementById('loginEmail').value.trim();
+  if(!email||!email.includes('@')){document.getElementById('loginEmail').style.borderColor='var(--red)';return;}
+  try{
+    const{error}=await supaClient.auth.signInWithOtp({email,options:{emailRedirectTo:location.origin+location.pathname}});
+    if(error)throw error;
+    document.getElementById('loginFormDiv').style.display='none';
+    document.getElementById('loginSentDiv').style.display='block';
+  }catch(e){showToast('Could not send link — try again',true);}
+}
+
+async function signOut(){
+  await supaClient.auth.signOut();
+  currentUser=null;
+  updateAuthUI();
+  showToast('Signed out');
+}
+
+function updateAuthUI(){
+  const btn=document.getElementById('authBtn');if(!btn)return;
+  if(currentUser){
+    const label=currentUser.email.split('@')[0];
+    btn.textContent=(label.length>12?label.slice(0,12)+'…':label);
+    btn.title='Signed in as '+currentUser.email+' — click to sign out';
+    btn.onclick=signOut;
+  } else {
+    btn.textContent='Sign In';
+    btn.title='';
+    btn.onclick=openLoginModal;
+  }
+}
+
+async function restoreUserData(){
+  if(!currentUser||Object.keys(picks).length>0) return;
+  try{
+    const rows=await supa('GET',`entries?user_id=eq.${currentUser.id}&order=submitted_at.desc&limit=10`);
+    if(!rows||!rows.length) return;
+    const entry=rows.find(e=>e.picks&&Object.keys(e.picks).length>0)||rows[0];
+    if(!entry||!entry.picks||!Object.keys(entry.picks).length) return;
+    picks=entry.picks; myName=entry.name; submitted=true; myEntryId=entry.id;
+    localStorage.setItem('myBracket',JSON.stringify({picks,myName,submitted:true}));
+    if(entry.group_id&&!currentGroup){
+      const gs=await supa('GET',`groups?id=eq.${entry.group_id}&select=id,name`);
+      if(gs&&gs[0]){currentGroup={id:gs[0].id,name:gs[0].name};localStorage.setItem('eid_'+currentGroup.id,myEntryId);}
+    }
+    render();
+    if(currentGroup){await loadGroupEntries();renderGroupTab();}
+    showToast('Welcome back, '+myName+' 👋');
+  }catch(e){console.error('restoreUserData',e);}
+}
+
+supaClient.auth.onAuthStateChange(async(event,session)=>{
+  currentUser=session?.user||null;
+  if(event==='SIGNED_IN') await restoreUserData();
+  updateAuthUI();
+});
 
 // ═══════════════════════
 //  VERIFIED RESULTS
@@ -643,10 +738,8 @@ async function confirmName(){
   myName=n; submitted=true; closeModal();
   save();
   localStorage.setItem('myBracket',JSON.stringify({picks,myName,submitted:true}));
-  // If in a group, save entry to Supabase
-  if(currentGroup){
-    await saveGroupEntry();
-  }
+  if(currentGroup) await saveGroupEntry();
+  else if(currentUser) await saveUserBracket();
   render(); showToast('Bracket locked! 🔒');
 }
 
@@ -753,26 +846,38 @@ async function joinGroup(){
 
 async function saveGroupEntry(){
   if(!currentGroup||!submitted) return;
+  const uid=currentUser?.id||null, em=currentUser?.email||null;
   try{
-    const data={group_id:currentGroup.id,name:myName,picks:picks};
+    const data={group_id:currentGroup.id,name:myName,picks,user_id:uid,email:em};
     if(myEntryId){
-      await supa('PATCH',`entries?id=eq.${myEntryId}`,{picks,name:myName});
+      await supa('PATCH',`entries?id=eq.${myEntryId}`,{picks,name:myName,user_id:uid,email:em});
     } else {
-      // Check for existing entry with same name to prevent duplicates
       const existing=await supa('GET',`entries?group_id=eq.${currentGroup.id}&name=eq.${encodeURIComponent(myName)}&select=id`);
       if(existing&&existing[0]){
         myEntryId=existing[0].id;
-        await supa('PATCH',`entries?id=eq.${myEntryId}`,{picks,name:myName});
+        await supa('PATCH',`entries?id=eq.${myEntryId}`,{picks,name:myName,user_id:uid,email:em});
       } else {
         const rows=await supa('POST','entries',data);
         if(rows&&rows[0]) myEntryId=rows[0].id;
       }
       save();
-      if(myEntryId) localStorage.setItem('eid_'+currentGroup.id, myEntryId);
+      if(myEntryId) localStorage.setItem('eid_'+currentGroup.id,myEntryId);
     }
   }catch(e){
     showToast('Could not save to group — Supabase unavailable',true);
   }
+}
+
+async function saveUserBracket(){
+  if(!currentUser||!submitted) return;
+  try{
+    if(myEntryId){
+      await supa('PATCH',`entries?id=eq.${myEntryId}`,{picks,name:myName});
+    } else {
+      const rows=await supa('POST','entries',{name:myName,picks,user_id:currentUser.id,email:currentUser.email});
+      if(rows&&rows[0]){myEntryId=rows[0].id;save();}
+    }
+  }catch(e){console.error('saveUserBracket',e);}
 }
 
 async function loadGroupEntries(){
@@ -1567,6 +1672,12 @@ setInterval(async()=>{
     if(document.getElementById('tab-group').classList.contains('active')) renderGroupTab();
   }
 },60000);
+// Check for existing login session (restores signed-in users on page load/refresh)
+supaClient.auth.getSession().then(({data:{session}})=>{
+  currentUser=session?.user||null;
+  if(currentUser&&Object.keys(picks).length===0) restoreUserData();
+  updateAuthUI();
+});
 </script>
 </body>
 </html>

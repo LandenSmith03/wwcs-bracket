@@ -145,39 +145,11 @@ def _espn_events_from_page(content, label):
             continue
         try:
             data, _ = json.JSONDecoder().raw_decode(content, brace)
-
-            # --- DIAGNOSTIC: print top-level structure so we can find events ---
-            print(f'  {label} top keys: {list(data.keys())}')
-            page_d = data.get('page', {})
-            print(f'  {label} page keys: {list(page_d.keys())}')
-            content_d = page_d.get('content', {})
-            print(f'  {label} content keys: {list(content_d.keys())}')
-            for k, v in content_d.items():
-                if isinstance(v, dict):
-                    print(f'    content[{k!r}] keys: {list(v.keys())}')
-                elif isinstance(v, list):
-                    print(f'    content[{k!r}]: list of {len(v)}')
-            # ------------------------------------------------------------------
-
             evs = (data.get('page', {})
                        .get('content', {})
                        .get('scoreboard', {})
                        .get('evts', []))
-            print(f'  {label}: {len(evs)} events via page.content.scoreboard.evts')
-            if evs:
-                e0 = evs[0]
-                print(f'  First event keys: {list(e0.keys())}')
-                # competitors is directly on event (not nested under competitions)
-                cs = e0.get('competitors', [])
-                print(f'  competitors count: {len(cs)}')
-                if cs:
-                    print(f'  competitor[0] keys: {list(cs[0].keys())}')
-                    print(f'  competitor[0] sample: {str(cs[0])[:300]}')
-                # also log teams and status structure
-                print(f'  teams: {str(e0.get("teams", {}))[:300]}')
-                print(f'  status: {str(e0.get("status", {}))[:200]}')
-                print(f'  completed: {e0.get("completed")}')
-                print(f'  note: {e0.get("note", {})}')
+            print(f'  {label}: {len(evs)} events')
             return evs
         except Exception as e:
             print(f'  {label} JSON parse error: {e}')
@@ -297,17 +269,16 @@ def _parse_ncaa_stats_html(html):
 
 
 def process_espn_events(events, winners):
+    """Process events from ESPN's __espnfitt__ scoreboard (evts) format."""
     updated = 0
     for ev in events:
-        comp = (ev.get('competitions') or [{}])[0]
-        cs = comp.get('competitors', [])
+        if not ev.get('completed'):
+            continue
+        cs = ev.get('competitors', [])
         if len(cs) < 2:
             continue
-        completed = comp.get('status', {}).get('type', {}).get('completed', False)
-        if not completed:
-            continue
-        n0 = cs[0].get('team', {}).get('displayName', '')
-        n1 = cs[1].get('team', {}).get('displayName', '')
+        n0 = cs[0].get('displayName', '')
+        n1 = cs[1].get('displayName', '')
         id0, id1 = norm(n0), norm(n1)
         if not id0 or not id1:
             print(f'  Unknown teams: "{n0}" / "{n1}"')
@@ -316,9 +287,15 @@ def process_espn_events(events, winners):
         if not gid:
             print(f'  No game ID for {id0} vs {id1}')
             continue
-        s0 = int(cs[0].get('score') or 0)
-        s1 = int(cs[1].get('score') or 0)
-        winner = id0 if s0 > s1 else id1
+        # Use winner flag if present, fall back to score comparison
+        if cs[0].get('winner'):
+            winner = id0
+        elif cs[1].get('winner'):
+            winner = id1
+        else:
+            s0 = int(cs[0].get('score') or 0)
+            s1 = int(cs[1].get('score') or 0)
+            winner = id0 if s0 > s1 else id1
         if winners.get(gid) == winner:
             print(f'  {gid}: {winner} already recorded')
             continue

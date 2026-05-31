@@ -356,28 +356,42 @@ html, body { min-height: 100%; background: var(--off); color: var(--text); font-
       <div style="font-family:'Bebas Neue',var(--fh);font-size:22px;letter-spacing:.1em" id="viewingNameEl"></div>
       <div style="font-family:var(--fh);font-size:11px;opacity:.65;margin-top:2px" id="viewingScoreEl"></div>
     </div>
-    <button class="btn white" onclick="closeViewBracket()">&#8592; Back to Group</button>
+    <button class="btn white" onclick="closeViewBracket()">&#8592; Back</button>
   </div>
-  <div class="banner" id="banner">
-    <div class="banner-info">
-      <strong id="bannerTitle">Make your picks — then lock them in!</strong>
-      <p id="bannerSub">Pick every game including already-played ones. Submit when done. Picks lock permanently.</p>
+
+  <!-- My Brackets list — shown when logged in and not in create mode -->
+  <div id="myBracketsView" style="display:none">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:10px">
+      <div style="font-family:'Bebas Neue',var(--fh);font-size:28px;letter-spacing:.05em;color:var(--navy)">My Brackets</div>
+      <button class="btn-red" onclick="startCreateBracket()">+ New Bracket</button>
     </div>
-    <div style="display:flex;flex-direction:column;align-items:flex-end;gap:7px">
-      <div class="score-big" id="scoreEl" style="display:none">0<span>PTS</span></div>
-      <button class="btn-red" id="subBtn" onclick="submitBracket()">Submit Bracket</button>
+    <div id="myEntriesList"></div>
+  </div>
+
+  <!-- Bracket picking view — shown when creating or not logged in -->
+  <div id="bracketPickView">
+    <div class="banner" id="banner">
+      <div class="banner-info">
+        <strong id="bannerTitle">Make your picks — then lock them in!</strong>
+        <p id="bannerSub">Pick every game. No real results shown. Submit when done — picks lock permanently.</p>
+      </div>
+      <div style="display:flex;flex-direction:column;align-items:flex-end;gap:7px">
+        <div class="score-big" id="scoreEl" style="display:none">0<span>PTS</span></div>
+        <button class="btn-red" id="subBtn" onclick="submitBracket()">Submit Bracket</button>
+        <button class="btn-navy" id="backToBracketsBtn" onclick="cancelCreateBracket()" style="display:none">← My Brackets</button>
+      </div>
     </div>
+    <div class="pts-row">
+      <div class="pts-chip">R1 (G1–4): <span class="pt">1pt</span></div>
+      <div class="pts-chip">L-R1 (G5–6): <span class="pt">1pt</span></div>
+      <div class="pts-chip">W-Semis (G7–8): <span class="pt">2pts</span></div>
+      <div class="pts-chip">L-Semis (G9–10): <span class="pt">2pts</span></div>
+      <div class="pts-chip">Bkt Finals (G11–14): <span class="pt">3pts</span></div>
+      <div class="pts-chip">Championship: <span class="pt">5pts</span></div>
+    </div>
+    <div class="bracket-scroll"><div class="bracket-outer" id="desktopBracket"></div></div>
+    <div class="mob-bracket" id="mobBracket"></div>
   </div>
-  <div class="pts-row">
-    <div class="pts-chip">R1 (G1–4): <span class="pt">1pt</span></div>
-    <div class="pts-chip">L-R1 (G5–6): <span class="pt">1pt</span></div>
-    <div class="pts-chip">W-Semis (G7–8): <span class="pt">2pts</span></div>
-    <div class="pts-chip">L-Semis (G9–10): <span class="pt">2pts</span></div>
-    <div class="pts-chip">Bkt Finals (G11–14): <span class="pt">3pts</span></div>
-    <div class="pts-chip">Championship: <span class="pt">5pts</span></div>
-  </div>
-  <div class="bracket-scroll"><div class="bracket-outer" id="desktopBracket"></div></div>
-  <div class="mob-bracket" id="mobBracket"></div>
 </div>
 
 <!-- GROUP TAB -->
@@ -635,25 +649,61 @@ async function initAuth(){
   updateAuthUI();
 }
 
-async function restoreUserData(){
-  if(!currentUser||Object.keys(picks).length>0) return;
+async function loadMyEntries(){
+  if(!currentUser){myEntries=[];return;}
   try{
-    const rows=await supa('GET',`entries?user_id=eq.${currentUser.id}&order=submitted_at.desc&limit=10`);
-    if(!rows||!rows.length) return;
-    const entry=rows.find(e=>e.picks&&Object.keys(e.picks).length>0)||rows[0];
-    if(!entry||!entry.picks||!Object.keys(entry.picks).length) return;
-    picks=entry.picks;myName=entry.name;submitted=true;myEntryId=entry.id;
-    localStorage.setItem('myBracket',JSON.stringify({picks,myName,submitted:true}));
-    if(entry.group_id&&!currentGroup){
-      const gs=await supa('GET',`groups?id=eq.${entry.group_id}&select=id,name`);
-      if(gs&&gs[0]){currentGroup={id:gs[0].id,name:gs[0].name};localStorage.setItem('eid_'+currentGroup.id,myEntryId);}
+    const rows=await supa('GET',`entries?user_id=eq.${currentUser.id}&order=submitted_at.desc`);
+    myEntries=rows||[];
+  }catch(e){myEntries=[];}
+}
+
+function renderMyBrackets(){
+  const mv=document.getElementById('myBracketsView');
+  const pv=document.getElementById('bracketPickView');
+  if(!mv||!pv) return;
+  if(currentUser&&!createMode&&!viewingEntry){
+    mv.style.display='block';pv.style.display='none';
+    const list=document.getElementById('myEntriesList');
+    list.innerHTML='';
+    if(!myEntries.length){
+      list.innerHTML='<p style="color:var(--text2);text-align:center;padding:48px 0;font-size:14px">No brackets yet — create your first one!</p>';
+      return;
     }
-    render();
-    if(currentGroup){
-      await loadGroupEntries();
-      if(document.getElementById('tab-group').classList.contains('active')) renderGroupTab();
-    }
-    showToast('Welcome back, '+myName+' 👋');
+    myEntries.forEach(entry=>{
+      const score=calcScore(entry.picks||{});
+      const card=document.createElement('div');
+      card.style.cssText='background:var(--card);border:1.5px solid var(--border);border-radius:var(--r2);padding:14px 16px;margin-bottom:10px;display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap';
+      const info=document.createElement('div');
+      const date=new Date(entry.submitted_at).toLocaleDateString([],{month:'short',day:'numeric'});
+      info.innerHTML=`<div style="font-family:var(--fh);font-weight:700;font-size:15px;color:var(--navy)">${entry.name}</div><div style="font-size:12px;color:var(--text2);margin-top:3px">Submitted ${date} &middot; <strong>${score} / ${maxPts()} pts</strong></div>`;
+      const btn=document.createElement('button');btn.className='btn-navy';btn.textContent='View';
+      btn.onclick=()=>viewEntry(entry);
+      card.appendChild(info);card.appendChild(btn);list.appendChild(card);
+    });
+  } else {
+    mv.style.display='none';pv.style.display='block';
+    const backBtn=document.getElementById('backToBracketsBtn');
+    if(backBtn) backBtn.style.display=(currentUser&&createMode&&!viewingEntry)?'block':'none';
+  }
+}
+
+function startCreateBracket(){
+  createMode=true;picks={};submitted=false;myName='';myEntryId=null;
+  render();renderMyBrackets();
+}
+
+function cancelCreateBracket(){
+  createMode=false;picks={};submitted=false;
+  render();renderMyBrackets();
+}
+
+async function restoreUserData(){
+  if(!currentUser) return;
+  try{
+    await loadMyEntries();
+    renderMyBrackets();
+    const name=currentUser.user_metadata?.name||currentUser.email.split('@')[0];
+    showToast('Welcome back, '+name+' 👋');
   }catch(e){console.error('restoreUserData',e);}
 }
 
@@ -717,9 +767,10 @@ let groupEntries=[]; // array of entry rows from Supabase
 let myEntryId=null;
 let pendingJoinCode=null;
 let viewingEntry=null, savedState=null;
+let myEntries=[], createMode=false;
 
 function tm(id){return id?T[id]:null}
-function getW(gid){return officialW[gid]||picks[gid]||null}
+function getW(gid){return createMode?(picks[gid]||null):(officialW[gid]||picks[gid]||null)}
 
 function resolveTeams(gid){
   const d=GD[gid];
@@ -814,21 +865,27 @@ function closeViewBracket(){
   picks=savedState.picks;
   submitted=savedState.submitted;
   myName=savedState.myName;
-  viewingEntry=null;
-  savedState=null;
+  viewingEntry=null;savedState=null;createMode=false;
   document.getElementById('viewingBar').style.display='none';
-  switchTab('group');
-  render();
+  render();renderMyBrackets();
 }
 async function confirmName(){
   const n=document.getElementById('nameInput').value.trim();
   if(!n){document.getElementById('nameInput').style.borderColor='var(--red)';return;}
-  myName=n; submitted=true; closeModal();
-  save();
-  localStorage.setItem('myBracket',JSON.stringify({picks,myName,submitted:true}));
-  if(currentGroup) await saveGroupEntry();
-  else if(currentUser) await saveUserBracket();
-  render(); showToast('Bracket locked! 🔒');
+  myName=n;submitted=true;closeModal();
+  if(currentUser){
+    try{
+      const rows=await supa('POST','entries',{name:myName,picks,user_id:currentUser.id,email:currentUser.email});
+      if(rows&&rows[0]) myEntryId=rows[0].id;
+    }catch(e){console.error('save entry',e);}
+    await loadMyEntries();
+    createMode=false;
+    render();renderMyBrackets();
+  } else {
+    if(currentGroup) await saveGroupEntry();
+    render();
+  }
+  showToast('Bracket submitted! 🔒');
 }
 
 // ═══════════════════════
@@ -1320,7 +1377,7 @@ function mkSlot(gid,teamId,isTop,pickIsValid=true,userSlotTeam=null){
   else if(isWrong) btn.classList.add('wrong');
   else if(isPicked) btn.classList.add('picked');
   else if(otherPicked) btn.classList.add('elim');
-  const checkLbl=ow===teamId?'<span class="ts-check">✓</span>':'';
+  const checkLbl=(!createMode&&ow===teamId)?'<span class="ts-check">✓</span>':'';
   const showGhost=submitted&&userSlotTeam&&teamId&&userSlotTeam.id!==teamId;
   if(showGhost){
     btn.style.cssText='flex-direction:column;align-items:stretch;height:auto;min-height:42px;padding:4px 8px 3px';
@@ -1663,7 +1720,7 @@ function buildMobile(){
       else if(isCorrect)btn.classList.add('correct');
       else if(picks[gid]===tid)btn.classList.add('picked');
       else if(picks[gid]&&picks[gid]!==tid)btn.classList.add('elim');
-      const al=aw===tid?'<span class="ts-check">✓</span>':'';
+      const al=(!createMode&&aw===tid)?'<span class="ts-check">✓</span>':'';
       const showGhost=submitted&&userSlotTeam&&tid&&userSlotTeam.id!==tid;
       if(showGhost){
         btn.style.flexDirection='column';btn.style.alignItems='stretch';btn.style.height='auto';btn.style.minHeight='38px';btn.style.paddingTop='3px';btn.style.paddingBottom='3px';
@@ -1713,37 +1770,38 @@ function renderBanner(){
   const subBtn=document.getElementById('subBtn');
   const scoreEl=document.getElementById('scoreEl');
   const resetBtn=document.getElementById('resetBtn');
-  if(submitted){
+  const backBtn=document.getElementById('backToBracketsBtn');
+  if(submitted&&!createMode){
     banner.classList.add('sub');
     titleEl.textContent=myName?`${myName}'s Bracket — LOCKED 🔒`:'Bracket Locked 🔒';
     const pts=calcScore(picks),max=maxPts(),done=Object.keys(officialW).length;
     subEl.textContent=`${done} game${done!==1?'s':''} decided · ${max-pts} pts still available`;
     subBtn.textContent='✓ Submitted';subBtn.disabled=true;subBtn.style.opacity='.55';
     if(pts!==null){scoreEl.style.display='block';scoreEl.innerHTML=`${pts}<span>/ ${max} PTS</span>`;}
-    resetBtn.style.display='none';
+    if(resetBtn)resetBtn.style.display='none';
+    if(backBtn)backBtn.style.display='none';
   } else {
     banner.classList.remove('sub');
     const m=countMissing();
-    if(m>0){titleEl.textContent=`${m} pick${m!==1?'s':''} remaining`;subEl.textContent='Pick every game — including already-played ones. Submit when done.';}
-    else{titleEl.textContent='All picks made — ready to submit!';subEl.textContent='Once submitted, picks are final and scored against real results.';}
+    if(createMode){
+      if(m>0){titleEl.textContent=`${m} pick${m!==1?'s':''} remaining`;subEl.textContent='Pick winners for every game. No real results shown — your picks only.';}
+      else{titleEl.textContent='All picks made — ready to submit!';subEl.textContent='Once submitted, your bracket is locked and scored against real results.';}
+    } else {
+      if(m>0){titleEl.textContent=`${m} pick${m!==1?'s':''} remaining`;subEl.textContent='Pick every game — including already-played ones. Submit when done.';}
+      else{titleEl.textContent='All picks made — ready to submit!';subEl.textContent='Once submitted, picks are final and scored against real results.';}
+    }
     scoreEl.style.display='none';subBtn.textContent='Submit Bracket';subBtn.disabled=false;subBtn.style.opacity='1';
-    resetBtn.style.display='';
+    if(resetBtn)resetBtn.style.display='';
+    if(backBtn)backBtn.style.display=(currentUser&&createMode)?'block':'none';
   }
 }
 
-function render(){buildDesktop();buildMobile();renderBanner();}
+function render(){buildDesktop();buildMobile();renderBanner();renderMyBrackets();}
 
 // ═══════════════════════
 //  INIT
 // ═══════════════════════
 loadURL();
-// If URL has no picks (e.g. invite link), restore submitted bracket from localStorage
-if(Object.keys(picks).length===0&&!submitted){
-  try{
-    const s=localStorage.getItem('myBracket');
-    if(s){const st=JSON.parse(s);if(st.submitted&&st.picks&&Object.keys(st.picks).length>0){picks=st.picks;submitted=st.submitted;if(st.myName)myName=st.myName;}}
-  }catch(e){}
-}
 // Restore entryId from localStorage if not in URL (survives page refresh)
 if(currentGroup&&!myEntryId){
   const stored=localStorage.getItem('eid_'+currentGroup.id);

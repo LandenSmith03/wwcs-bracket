@@ -145,11 +145,25 @@ def _espn_events_from_page(content, label):
             continue
         try:
             data, _ = json.JSONDecoder().raw_decode(content, brace)
+
+            # --- DIAGNOSTIC: print top-level structure so we can find events ---
+            print(f'  {label} top keys: {list(data.keys())}')
+            page_d = data.get('page', {})
+            print(f'  {label} page keys: {list(page_d.keys())}')
+            content_d = page_d.get('content', {})
+            print(f'  {label} content keys: {list(content_d.keys())}')
+            for k, v in content_d.items():
+                if isinstance(v, dict):
+                    print(f'    content[{k!r}] keys: {list(v.keys())}')
+                elif isinstance(v, list):
+                    print(f'    content[{k!r}]: list of {len(v)}')
+            # ------------------------------------------------------------------
+
             evs = (data.get('page', {})
                        .get('content', {})
                        .get('scoreboard', {})
                        .get('events', []))
-            print(f'  {label}: {len(evs)} events')
+            print(f'  {label}: {len(evs)} events via page.content.scoreboard.events')
             return evs
         except Exception as e:
             print(f'  {label} JSON parse error: {e}')

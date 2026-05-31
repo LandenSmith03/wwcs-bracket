@@ -520,10 +520,10 @@ async function sendMagicLink(){
   const btn=document.querySelector('#loginFormDiv .btn-red');
   if(btn){btn.disabled=true;btn.textContent='Sending…';}
   try{
-    const r=await fetch(SUPA_URL+'/auth/v1/otp',{
+    const r=await fetch(SUPA_URL+'/auth/v1/otp?redirect_to='+encodeURIComponent('https://landensmith03.github.io/wwcs-bracket/'),{
       method:'POST',
       headers:{'apikey':SUPA_KEY,'Content-Type':'application/json'},
-      body:JSON.stringify({email,options:{redirectTo:'https://landensmith03.github.io/wwcs-bracket/'}})
+      body:JSON.stringify({email})
     });
     if(!r.ok)throw new Error();
     document.getElementById('loginFormDiv').style.display='none';

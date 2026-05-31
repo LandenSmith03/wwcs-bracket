@@ -525,12 +525,13 @@ async function sendMagicLink(){
       headers:{'apikey':SUPA_KEY,'Content-Type':'application/json'},
       body:JSON.stringify({email})
     });
-    if(!r.ok)throw new Error();
+    if(!r.ok){const t=await r.text();console.error('OTP error',r.status,t);throw new Error(t);}
     document.getElementById('loginFormDiv').style.display='none';
     document.getElementById('loginSentDiv').style.display='block';
   }catch(e){
     if(btn){btn.disabled=false;btn.textContent='Send Link ✉️';}
-    showToast('Could not send link — try again',true);
+    const msg=e.message&&e.message.length<120?e.message:'Could not send link — try again';
+    showToast(msg,true);
   }
 }
 

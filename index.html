@@ -462,7 +462,7 @@ html, body { min-height: 100%; background: var(--off); color: var(--text); font-
 </div>
 
 <!-- LOGIN MODAL -->
-<div class="modal-bg" id="loginModalBg" onclick="if(event.target===this)closeLoginModal()" style="display:none">
+<div class="modal-bg" id="loginModalBg" onclick="if(event.target===this)closeLoginModal()">
   <div class="modal" style="max-width:320px">
     <h2>Save Your Bracket</h2>
     <p style="font-size:13px;color:var(--text2);margin-bottom:16px">Sign in with your email to restore your bracket and group on any device — no password needed.</p>
@@ -507,12 +507,12 @@ async function supa(method,path,body){
 //  AUTH (direct REST — no CDN)
 // ═══════════════════════
 function openLoginModal(){
-  document.getElementById('loginModalBg').style.display='flex';
+  document.getElementById('loginModalBg').classList.add('open');
   document.getElementById('loginFormDiv').style.display='block';
   document.getElementById('loginSentDiv').style.display='none';
   const e=document.getElementById('loginEmail');e.value='';e.style.borderColor='';
 }
-function closeLoginModal(){document.getElementById('loginModalBg').style.display='none';}
+function closeLoginModal(){document.getElementById('loginModalBg').classList.remove('open');}
 
 async function sendMagicLink(){
   const email=document.getElementById('loginEmail').value.trim();

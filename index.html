@@ -464,20 +464,19 @@ html, body { min-height: 100%; background: var(--off); color: var(--text); font-
 <!-- LOGIN MODAL -->
 <div class="modal-bg" id="loginModalBg" onclick="if(event.target===this)closeLoginModal()">
   <div class="modal" style="max-width:320px">
-    <h2>Save Your Bracket</h2>
-    <p style="font-size:13px;color:var(--text2);margin-bottom:16px">Sign in with your email to restore your bracket and group on any device — no password needed.</p>
+    <h2 id="authModalTitle">Sign In</h2>
+    <p style="font-size:13px;color:var(--text2);margin-bottom:16px" id="authModalSubtitle">Save your bracket and groups across devices.</p>
     <div id="loginFormDiv">
-      <input type="email" id="loginEmail" placeholder="your@email.com" style="width:100%;box-sizing:border-box;padding:10px 12px;border:2px solid var(--border);border-radius:var(--r1);font-size:14px;margin-bottom:10px;outline:none;font-family:var(--fb)" onkeydown="if(event.key==='Enter')sendMagicLink()">
+      <input type="email" id="loginEmail" placeholder="your@email.com" style="width:100%;box-sizing:border-box;padding:10px 12px;border:2px solid var(--border);border-radius:var(--r1);font-size:14px;margin-bottom:10px;outline:none;font-family:var(--fb)" onkeydown="if(event.key==='Enter')submitAuth()">
+      <input type="password" id="loginPassword" placeholder="Password (min 6 chars)" style="width:100%;box-sizing:border-box;padding:10px 12px;border:2px solid var(--border);border-radius:var(--r1);font-size:14px;margin-bottom:12px;outline:none;font-family:var(--fb)" onkeydown="if(event.key==='Enter')submitAuth()">
       <div class="modal-btns">
         <button class="btn-navy" onclick="closeLoginModal()">Skip</button>
-        <button class="btn-red" onclick="sendMagicLink()">Send Link ✉️</button>
+        <button class="btn-red" id="authSubmitBtn" onclick="submitAuth()">Sign In</button>
       </div>
-    </div>
-    <div id="loginSentDiv" style="display:none;text-align:center;padding:8px 0">
-      <div style="font-size:40px;margin-bottom:10px">📬</div>
-      <p style="font-weight:700;margin-bottom:6px">Check your email!</p>
-      <p style="font-size:12px;color:var(--text2);margin-bottom:16px">Click the link we sent to sign in. You'll be brought back here automatically.</p>
-      <button class="btn-navy" onclick="closeLoginModal()">Close</button>
+      <p style="text-align:center;font-size:12px;margin-top:12px;color:var(--text2)">
+        <span id="authToggleText">Don't have an account?</span>
+        <a href="#" style="color:var(--red);font-weight:700;margin-left:4px" onclick="toggleAuthMode(event)" id="authToggleLink">Sign Up</a>
+      </p>
     </div>
   </div>
 </div>
@@ -506,31 +505,57 @@ async function supa(method,path,body){
 // ═══════════════════════
 //  AUTH (direct REST — no CDN)
 // ═══════════════════════
+let authMode='signin';
+
 function openLoginModal(){
   document.getElementById('loginModalBg').classList.add('open');
-  document.getElementById('loginFormDiv').style.display='block';
-  document.getElementById('loginSentDiv').style.display='none';
+  authMode='signin';
+  _syncAuthModalUI();
   const e=document.getElementById('loginEmail');e.value='';e.style.borderColor='';
+  const p=document.getElementById('loginPassword');p.value='';p.style.borderColor='';
 }
 function closeLoginModal(){document.getElementById('loginModalBg').classList.remove('open');}
 
-async function sendMagicLink(){
+function toggleAuthMode(e){
+  e.preventDefault();
+  authMode=authMode==='signin'?'signup':'signin';
+  _syncAuthModalUI();
+}
+
+function _syncAuthModalUI(){
+  const si=authMode==='signin';
+  document.getElementById('authModalTitle').textContent=si?'Sign In':'Sign Up';
+  document.getElementById('authModalSubtitle').textContent=si?'Welcome back — sign in to restore your bracket.':'Create an account to save your bracket across devices.';
+  document.getElementById('authSubmitBtn').textContent=si?'Sign In':'Sign Up';
+  document.getElementById('authToggleText').textContent=si?"Don't have an account?":'Already have an account?';
+  document.getElementById('authToggleLink').textContent=si?'Sign Up':'Sign In';
+}
+
+async function submitAuth(){
   const email=document.getElementById('loginEmail').value.trim();
-  if(!email||!email.includes('@')){document.getElementById('loginEmail').style.borderColor='var(--red)';return;}
-  const btn=document.querySelector('#loginFormDiv .btn-red');
-  if(btn){btn.disabled=true;btn.textContent='Sending…';}
+  const password=document.getElementById('loginPassword').value;
+  let valid=true;
+  if(!email||!email.includes('@')){document.getElementById('loginEmail').style.borderColor='var(--red)';valid=false;}
+  if(!password||password.length<6){document.getElementById('loginPassword').style.borderColor='var(--red)';if(valid)showToast('Password must be at least 6 characters',true);valid=false;}
+  if(!valid)return;
+  const btn=document.getElementById('authSubmitBtn');
+  btn.disabled=true;btn.textContent=authMode==='signin'?'Signing in…':'Creating account…';
   try{
-    const r=await fetch(SUPA_URL+'/auth/v1/otp?redirect_to='+encodeURIComponent('https://landensmith03.github.io/wwcs-bracket/'),{
-      method:'POST',
-      headers:{'apikey':SUPA_KEY,'Content-Type':'application/json'},
-      body:JSON.stringify({email})
-    });
-    if(!r.ok){const t=await r.text();console.error('OTP error',r.status,t);let j={};try{j=JSON.parse(t);}catch(_){}if(j.error_code==='OVER_EMAIL_SEND_RATE_LIMIT')throw new Error('Too many attempts — please wait a few minutes and try again.');throw new Error('Could not send link — try again');}
-    document.getElementById('loginFormDiv').style.display='none';
-    document.getElementById('loginSentDiv').style.display='block';
+    if(authMode==='signup'){
+      const r=await fetch(SUPA_URL+'/auth/v1/signup',{method:'POST',headers:{'apikey':SUPA_KEY,'Content-Type':'application/json'},body:JSON.stringify({email,password})});
+      const d=await r.json();
+      if(!r.ok)throw new Error(d.msg||d.message||'Sign up failed — try again');
+      if(d.access_token){closeLoginModal();await _setSession(d.access_token,d.refresh_token);}
+      else{authMode='signin';_syncAuthModalUI();showToast('Account created! Now sign in.',false);}
+    }else{
+      const r=await fetch(SUPA_URL+'/auth/v1/token?grant_type=password',{method:'POST',headers:{'apikey':SUPA_KEY,'Content-Type':'application/json'},body:JSON.stringify({email,password})});
+      const d=await r.json();
+      if(!r.ok)throw new Error(d.error_description||d.msg||'Invalid email or password');
+      closeLoginModal();await _setSession(d.access_token,d.refresh_token);
+    }
   }catch(e){
-    if(btn){btn.disabled=false;btn.textContent='Send Link ✉️';}
-    showToast(e.message||'Could not send link — try again',true);
+    btn.disabled=false;btn.textContent=authMode==='signin'?'Sign In':'Sign Up';
+    showToast(e.message||'Something went wrong — try again',true);
   }
 }
 

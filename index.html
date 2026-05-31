@@ -425,13 +425,13 @@ html, body { min-height: 100%; background: var(--off); color: var(--text); font-
       <h3>📡 Live Scores</h3>
       <div class="how-row"><div class="how-ic">1️⃣</div><div class="how-text"><strong>Verified results</strong><p>Completed games are hardcoded and load instantly.</p></div></div>
       <div class="hdiv"></div>
-      <div class="how-row"><div class="how-ic">2️⃣</div><div class="how-text"><strong>NCAA + ESPN feeds</strong><p>Live scores auto-refresh every 60 seconds.</p></div></div>
+      <div class="how-row"><div class="how-ic">2️⃣</div><div class="how-text"><strong>Auto-updated scores</strong><p>A server job fetches scores every 10 minutes and updates the bracket automatically. Live refresh every 60 seconds.</p></div></div>
       <div class="hdiv"></div>
       <div class="how-row"><div class="how-ic">3️⃣</div><div class="how-text"><strong>Admin panel</strong><p>Fallback: admin manually enters winners. Password: ask the bracket host.</p></div></div>
     </div>
     <div class="how-panel">
       <h3>🔗 Sharing</h3>
-      <div class="how-row"><div class="how-ic">🌐</div><div class="how-text"><strong>Host on Netlify</strong><p>Drag & drop to <a href="https://app.netlify.com/drop" target="_blank">Netlify Drop</a> for a free shareable link. Hit Share 🔗 to copy your bracket URL.</p></div></div>
+      <div class="how-row"><div class="how-ic">🌐</div><div class="how-text"><strong>Hosted on GitHub Pages</strong><p>The site is live at <strong>landensmith03.github.io/wwcs-bracket</strong>. Hit Share 🔗 to copy your bracket URL.</p></div></div>
     </div>
   </div>
 </div>
@@ -1088,10 +1088,11 @@ function setStatus(cls,msg,src){
 async function fetchAll(){
   liveData={};
   officialW={...VERIFIED};
-  // Supabase admin results override VERIFIED
+  // Load finalized results from Supabase (written by GitHub Action every 10 min)
+  let supaCount=0;
   try{
     const rows=await supa('GET','results?select=game_id,winner');
-    if(Array.isArray(rows)) rows.forEach(r=>{if(r.winner)officialW[r.game_id]=r.winner;});
+    if(Array.isArray(rows)) rows.forEach(r=>{if(r.winner){officialW[r.game_id]=r.winner;supaCount++;}});
   }catch(e){}
 
   const EM={'texas tech':'textech','mississippi state':'msstate','mississippi st':'msstate','texas':'texas','tennessee':'tennessee','alabama':'alabama','ucla':'ucla','nebraska':'nebraska','arkansas':'arkansas'};
@@ -1162,11 +1163,15 @@ async function fetchAll(){
   if(totalFound>0){
     document.getElementById('livePill').classList.toggle('on',totalLive>0);
     setStatus(srcLabel==='NCAA'?'hi':'warn',totalLive>0?`● ${srcLabel} live`:`${srcLabel} scores loaded`,srcLabel);
-    render(); return;
+  } else if(Object.keys(officialW).length>0){
+    // Supabase (GitHub Action) or VERIFIED has results — show clean status
+    document.getElementById('livePill').classList.remove('on');
+    setStatus('hi','Scores updated','Admin');
+  } else {
+    document.getElementById('statusTxt').innerHTML=`<span class="warn" style="font-size:10px">${diag.join(' | ')}</span>`;
+    document.getElementById('srcBadge').textContent='';
+    document.getElementById('lastUp').textContent='Updated '+new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
   }
-  document.getElementById('statusTxt').innerHTML=`<span class="warn" style="font-size:10px">${diag.join(' | ')}</span>`;
-  document.getElementById('srcBadge').textContent='';
-  document.getElementById('lastUp').textContent='Updated '+new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
   render();
 }
 

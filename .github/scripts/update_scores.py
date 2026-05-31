@@ -5,8 +5,10 @@ SUPA_URL = 'https://poklxjqcgggjlzzlutkh.supabase.co'
 SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBva2x4anFjZ2dnamx6emx1dGtoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAwMTcwMTUsImV4cCI6MjA5NTU5MzAxNX0.Q1XHkfRhvaUsIxUngdRvkVkVixOax0m3sRN2ZKLTXJs'
 
 HEADERS = {
-    'User-Agent': 'Mozilla/5.0 (compatible; wcws-bracket-bot/1.0)',
-    'Accept': 'application/json',
+    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+    'Accept': 'application/json, text/plain, */*',
+    'Accept-Language': 'en-US,en;q=0.9',
+    'Referer': 'https://www.espn.com/',
 }
 
 # Maps fragments of a team display name to internal ID
@@ -50,7 +52,15 @@ GD = {
     'cf3': {'from': ['w:g11', 'w:g13'], 'ifnec': True},
 }
 
-VERIFIED = {'g1': 'textech', 'g2': 'tennessee', 'g7': 'tennessee'}
+VERIFIED = {
+    'g1': 'textech',    # Texas Tech beat Mississippi State — May 28
+    'g2': 'tennessee',  # Tennessee beat Texas — May 28
+    'g3': 'alabama',    # Alabama beat UCLA — May 28
+    'g4': 'nebraska',   # Nebraska beat Arkansas — May 28
+    'g5': 'texas',      # Texas beat Mississippi State — May 29
+    'g6': 'ucla',       # UCLA beat Arkansas — May 29
+    'g7': 'tennessee',  # Tennessee beat Texas Tech — May 30
+}
 
 
 def norm(name):
@@ -124,46 +134,102 @@ def supa_upsert(gid, winner):
 
 
 def fetch_espn():
-    urls = [
-        'https://site.api.espn.com/apis/site/v2/sports/softball/college-softball/scoreboard',
-        'https://site.api.espn.com/apis/site/v2/sports/softball/college-softball/scoreboard?seasontype=3',
-        'https://site.api.espn.com/apis/site/v2/sports/softball/womens-college-softball/scoreboard',
-        'https://site.api.espn.com/apis/site/v2/sports/softball/college-softball/scoreboard?limit=100&groups=90',
-    ]
-    for url in urls:
+    """Scrape ESPN's scoreboard page and extract the embedded JSON data."""
+    page_headers = {**HEADERS, 'Accept': 'text/html,application/xhtml+xml,*/*'}
+    for url in [
+        'https://www.espn.com/college-softball/scoreboard/',
+        'https://www.espn.com/college-softball/scoreboard/_/seasontype/3',
+    ]:
         try:
-            r = requests.get(url, headers=HEADERS, timeout=10)
-            print(f'ESPN {url.split("scoreboard")[1] or "(base)"}: HTTP {r.status_code}')
-            if r.ok:
-                data = r.json()
-                evs = data.get('events', [])
-                print(f'  → {len(evs)} events')
-                return evs
+            r = requests.get(url, headers=page_headers, timeout=15)
+            print(f'ESPN page {url.split("scoreboard")[1] or "/"}: HTTP {r.status_code}')
+            if not r.ok:
+                continue
+            text = r.text
+            # ESPN embeds all page data as window['__espnfitt__']={...}
+            for marker in ["window['__espnfitt__']=", 'window["__espnfitt__"]=' ]:
+                idx = text.find(marker)
+                if idx == -1:
+                    continue
+                brace = text.find('{', idx + len(marker))
+                if brace == -1:
+                    continue
+                try:
+                    data, _ = json.JSONDecoder().raw_decode(text, brace)
+                    evs = (data.get('page', {})
+                               .get('content', {})
+                               .get('scoreboard', {})
+                               .get('events', []))
+                    print(f'  → {len(evs)} events')
+                    if evs:
+                        return evs
+                except Exception as e:
+                    print(f'  ESPN JSON parse error: {e}')
         except Exception as e:
-            print(f'ESPN error: {e}')
+            print(f'ESPN page error: {e}')
+    return []
+
+
+def _search_ncaa_games(data, depth=0):
+    """Recursively search Next.js page data for a list of game objects."""
+    if depth > 8:
+        return []
+    if isinstance(data, list) and data and isinstance(data[0], dict):
+        if any(k in data[0] for k in ('home', 'away', 'homeTeam', 'awayTeam', 'teams')):
+            return data
+        for item in data:
+            result = _search_ncaa_games(item, depth + 1)
+            if result:
+                return result
+    elif isinstance(data, dict):
+        for k in ('games', 'contests', 'events', 'matches', 'items'):
+            if k in data:
+                result = _search_ncaa_games(data[k], depth + 1)
+                if result:
+                    return result
+        for v in data.values():
+            if isinstance(v, (dict, list)):
+                result = _search_ncaa_games(v, depth + 1)
+                if result:
+                    return result
     return []
 
 
 def fetch_ncaa():
-    today = datetime.now(timezone.utc)
-    start = datetime(2026, 5, 28, tzinfo=timezone.utc)
-    games = []
-    d = start
-    while d <= today:
-        y, m, day = d.year, f'{d.month:02d}', f'{d.day:02d}'
-        url = f'https://data.ncaa.com/casablanca/scoreboard/softball/d1/{y}/{m}/{day}/scoreboard.json'
+    """Scrape NCAA.com WCWS pages and extract embedded Next.js JSON data."""
+    page_headers = {**HEADERS, 'Accept': 'text/html,application/xhtml+xml,*/*',
+                    'Referer': 'https://www.ncaa.com/'}
+    for url in [
+        'https://www.ncaa.com/championships/softball/d1',
+        'https://www.ncaa.com/sports/softball/d1',
+    ]:
         try:
-            r = requests.get(url, headers=HEADERS, timeout=10)
-            print(f'NCAA {y}{m}{day}: HTTP {r.status_code}')
-            if r.ok:
-                data = r.json()
-                raw = data.get('games', [])
-                print(f'  → {len(raw)} games')
-                games.extend(raw)
+            r = requests.get(url, headers=page_headers, timeout=15)
+            print(f'NCAA page {url.split(".com")[1]}: HTTP {r.status_code}')
+            if not r.ok:
+                continue
+            text = r.text
+            # Next.js apps embed full page data in a __NEXT_DATA__ script tag
+            idx = text.find('__NEXT_DATA__')
+            if idx == -1:
+                print('  No __NEXT_DATA__ found')
+                continue
+            start = text.find('>', idx) + 1
+            end = text.find('</script>', start)
+            if start <= 0 or end <= 0:
+                continue
+            try:
+                data = json.loads(text[start:end])
+                games = _search_ncaa_games(data)
+                if games:
+                    print(f'  → {len(games)} games')
+                    return games
+                print('  No game list found in NCAA data')
+            except Exception as e:
+                print(f'  NCAA JSON parse error: {e}')
         except Exception as e:
-            print(f'NCAA {y}{m}{day} error: {e}')
-        d += timedelta(days=1)
-    return games
+            print(f'NCAA page error: {e}')
+    return []
 
 
 def process_espn_events(events, winners):

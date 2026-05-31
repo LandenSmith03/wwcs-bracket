@@ -5,8 +5,10 @@ SUPA_URL = 'https://poklxjqcgggjlzzlutkh.supabase.co'
 SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBva2x4anFjZ2dnamx6emx1dGtoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAwMTcwMTUsImV4cCI6MjA5NTU5MzAxNX0.Q1XHkfRhvaUsIxUngdRvkVkVixOax0m3sRN2ZKLTXJs'
 
 HEADERS = {
-    'User-Agent': 'Mozilla/5.0 (compatible; wcws-bracket-bot/1.0)',
-    'Accept': 'application/json',
+    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+    'Accept': 'application/json, text/plain, */*',
+    'Accept-Language': 'en-US,en;q=0.9',
+    'Referer': 'https://www.espn.com/',
 }
 
 # Maps fragments of a team display name to internal ID
@@ -50,7 +52,15 @@ GD = {
     'cf3': {'from': ['w:g11', 'w:g13'], 'ifnec': True},
 }
 
-VERIFIED = {'g1': 'textech', 'g2': 'tennessee', 'g7': 'tennessee'}
+VERIFIED = {
+    'g1': 'textech',    # Texas Tech beat Mississippi State — May 28
+    'g2': 'tennessee',  # Tennessee beat Texas — May 28
+    'g3': 'alabama',    # Alabama beat UCLA — May 28
+    'g4': 'nebraska',   # Nebraska beat Arkansas — May 28
+    'g5': 'texas',      # Texas beat Mississippi State — May 29
+    'g6': 'ucla',       # UCLA beat Arkansas — May 29
+    'g7': 'tennessee',  # Tennessee beat Texas Tech — May 30
+}
 
 
 def norm(name):
@@ -124,21 +134,32 @@ def supa_upsert(gid, winner):
 
 
 def fetch_espn():
+    today = datetime.now(timezone.utc)
+    date_str = today.strftime('%Y%m%d')
+    yesterday = (today - timedelta(days=1)).strftime('%Y%m%d')
     urls = [
-        'https://site.api.espn.com/apis/site/v2/sports/softball/college-softball/scoreboard',
-        'https://site.api.espn.com/apis/site/v2/sports/softball/college-softball/scoreboard?seasontype=3',
-        'https://site.api.espn.com/apis/site/v2/sports/softball/womens-college-softball/scoreboard',
-        'https://site.api.espn.com/apis/site/v2/sports/softball/college-softball/scoreboard?limit=100&groups=90',
+        # CDN endpoint — used by ESPN's own website frontend
+        f'https://cdn.espn.com/core/college-softball/scoreboard?xhr=1&limit=100&dates={date_str}',
+        f'https://cdn.espn.com/core/college-softball/scoreboard?xhr=1&limit=100&dates={yesterday}',
+        # site API with seasontype=3 (postseason)
+        'https://site.api.espn.com/apis/site/v2/sports/softball/college-softball/scoreboard?seasontype=3&limit=100',
+        # web API variant
+        f'https://site.web.api.espn.com/apis/v2/sports/softball/college-softball/scoreboard?dates={date_str}&seasontype=3',
+        f'https://site.web.api.espn.com/apis/v2/sports/softball/college-softball/scoreboard?dates={yesterday}&seasontype=3',
     ]
     for url in urls:
         try:
             r = requests.get(url, headers=HEADERS, timeout=10)
-            print(f'ESPN {url.split("scoreboard")[1] or "(base)"}: HTTP {r.status_code}')
+            label = url.split('espn.com')[1][:60]
+            print(f'ESPN {label}: HTTP {r.status_code}')
             if r.ok:
                 data = r.json()
-                evs = data.get('events', [])
+                # CDN wraps events under content.sbData
+                evs = (data.get('content', {}).get('sbData', {}).get('events')
+                       or data.get('events', []))
                 print(f'  → {len(evs)} events')
-                return evs
+                if evs:
+                    return evs
         except Exception as e:
             print(f'ESPN error: {e}')
     return []
@@ -151,17 +172,25 @@ def fetch_ncaa():
     d = start
     while d <= today:
         y, m, day = d.year, f'{d.month:02d}', f'{d.day:02d}'
-        url = f'https://data.ncaa.com/casablanca/scoreboard/softball/d1/{y}/{m}/{day}/scoreboard.json'
-        try:
-            r = requests.get(url, headers=HEADERS, timeout=10)
-            print(f'NCAA {y}{m}{day}: HTTP {r.status_code}')
-            if r.ok:
-                data = r.json()
-                raw = data.get('games', [])
-                print(f'  → {len(raw)} games')
-                games.extend(raw)
-        except Exception as e:
-            print(f'NCAA {y}{m}{day} error: {e}')
+        # Try multiple NCAA API paths — casablanca 404s for postseason dates
+        ncaa_urls = [
+            f'https://data.ncaa.com/casablanca/scoreboard/softball/d1/{y}/{m}/{day}/scoreboard.json',
+            f'https://ncaa-api.henrygd.me/scoreboard/softball/d1/{y}/{m}/{day}/scoreboard',
+        ]
+        for url in ncaa_urls:
+            try:
+                r = requests.get(url, headers=HEADERS, timeout=10)
+                src = 'henrygd' if 'henrygd' in url else 'NCAA'
+                print(f'{src} {y}{m}{day}: HTTP {r.status_code}')
+                if r.ok:
+                    data = r.json()
+                    raw = data.get('games', [])
+                    print(f'  → {len(raw)} games')
+                    if raw:
+                        games.extend(raw)
+                        break
+            except Exception as e:
+                print(f'NCAA {y}{m}{day} error: {e}')
         d += timedelta(days=1)
     return games
 

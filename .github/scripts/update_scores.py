@@ -133,102 +133,148 @@ def supa_upsert(gid, winner):
     return r.ok
 
 
+def _extract_json_markers(text, markers):
+    """Try each marker string, return parsed JSON object if found."""
+    for marker in markers:
+        idx = text.find(marker)
+        if idx == -1:
+            continue
+        brace = text.find('{', idx + len(marker))
+        if brace == -1:
+            continue
+        try:
+            data, _ = json.JSONDecoder().raw_decode(text, brace)
+            return data
+        except Exception:
+            pass
+    return None
+
+
 def fetch_espn():
-    """Scrape ESPN's scoreboard page and extract the embedded JSON data."""
-    page_headers = {**HEADERS, 'Accept': 'text/html,application/xhtml+xml,*/*'}
+    """Fetch ESPN scoreboard using a cookie session to bypass basic bot checks."""
+    session = requests.Session()
+    session.headers.update({
+        **HEADERS,
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+        'Accept-Encoding': 'gzip, deflate, br',
+        'Connection': 'keep-alive',
+    })
+    try:
+        # Seed cookies by visiting homepage first
+        session.get('https://www.espn.com/', timeout=10)
+    except Exception:
+        pass
+
     for url in [
         'https://www.espn.com/college-softball/scoreboard/',
         'https://www.espn.com/college-softball/scoreboard/_/seasontype/3',
     ]:
         try:
-            r = requests.get(url, headers=page_headers, timeout=15)
-            print(f'ESPN page {url.split("scoreboard")[1] or "/"}: HTTP {r.status_code}')
-            if not r.ok:
+            r = session.get(url, timeout=15)
+            print(f'ESPN {url.split("scoreboard")[1] or "/"}: HTTP {r.status_code} ({len(r.text)} chars)')
+            if not r.ok and r.status_code != 202:
                 continue
             text = r.text
-            # ESPN embeds all page data as window['__espnfitt__']={...}
-            for marker in ["window['__espnfitt__']=", 'window["__espnfitt__"]=' ]:
-                idx = text.find(marker)
-                if idx == -1:
-                    continue
-                brace = text.find('{', idx + len(marker))
-                if brace == -1:
-                    continue
-                try:
-                    data, _ = json.JSONDecoder().raw_decode(text, brace)
-                    evs = (data.get('page', {})
-                               .get('content', {})
-                               .get('scoreboard', {})
-                               .get('events', []))
-                    print(f'  → {len(evs)} events')
-                    if evs:
-                        return evs
-                except Exception as e:
-                    print(f'  ESPN JSON parse error: {e}')
+            print(f'  Page snippet: {text[:200].strip()!r}')
+            data = _extract_json_markers(text, [
+                "window['__espnfitt__']=",
+                'window["__espnfitt__"]=',
+                '__espnfitt__=',
+            ])
+            if data:
+                evs = (data.get('page', {})
+                           .get('content', {})
+                           .get('scoreboard', {})
+                           .get('events', []))
+                print(f'  → {len(evs)} events')
+                if evs:
+                    return evs
+                print(f'  Keys found: {list(data.keys())[:8]}')
+            else:
+                print('  No __espnfitt__ marker found in page')
         except Exception as e:
-            print(f'ESPN page error: {e}')
+            print(f'ESPN error: {e}')
     return []
 
 
-def _search_ncaa_games(data, depth=0):
-    """Recursively search Next.js page data for a list of game objects."""
+def _search_for_games(data, depth=0):
+    """Recursively search embedded page JSON for a list of game objects."""
     if depth > 8:
         return []
     if isinstance(data, list) and data and isinstance(data[0], dict):
-        if any(k in data[0] for k in ('home', 'away', 'homeTeam', 'awayTeam', 'teams')):
+        if any(k in data[0] for k in ('home', 'away', 'homeTeam', 'awayTeam', 'competitions')):
             return data
         for item in data:
-            result = _search_ncaa_games(item, depth + 1)
-            if result:
-                return result
+            r = _search_for_games(item, depth + 1)
+            if r:
+                return r
     elif isinstance(data, dict):
-        for k in ('games', 'contests', 'events', 'matches', 'items'):
+        for k in ('games', 'contests', 'events', 'matches', 'items', 'scoreboard'):
             if k in data:
-                result = _search_ncaa_games(data[k], depth + 1)
-                if result:
-                    return result
+                r = _search_for_games(data[k], depth + 1)
+                if r:
+                    return r
         for v in data.values():
             if isinstance(v, (dict, list)):
-                result = _search_ncaa_games(v, depth + 1)
-                if result:
-                    return result
+                r = _search_for_games(v, depth + 1)
+                if r:
+                    return r
     return []
 
 
 def fetch_ncaa():
-    """Scrape NCAA.com WCWS pages and extract embedded Next.js JSON data."""
-    page_headers = {**HEADERS, 'Accept': 'text/html,application/xhtml+xml,*/*',
-                    'Referer': 'https://www.ncaa.com/'}
-    for url in [
-        'https://www.ncaa.com/championships/softball/d1',
-        'https://www.ncaa.com/sports/softball/d1',
-    ]:
+    """Try Yahoo Sports and NCAA.com for embedded score data as ESPN fallback."""
+    page_headers = {
+        **HEADERS,
+        'Accept': 'text/html,application/xhtml+xml,*/*',
+    }
+
+    # Yahoo Sports — embeds Redux state with score data
+    try:
+        r = requests.get(
+            'https://sports.yahoo.com/college-softball/scoreboard/',
+            headers={**page_headers, 'Referer': 'https://sports.yahoo.com/'},
+            timeout=15,
+        )
+        print(f'Yahoo Sports: HTTP {r.status_code} ({len(r.text)} chars)')
+        if r.ok:
+            text = r.text
+            print(f'  Page snippet: {text[:200].strip()!r}')
+            data = _extract_json_markers(text, [
+                'window.App={',
+                'window.__REDUX_STATE__=',
+                'window.__INITIAL_STATE__=',
+                '"scoreboard":{"games":',
+            ])
+            if data:
+                games = _search_for_games(data)
+                if games:
+                    print(f'  → {len(games)} games (Yahoo)')
+                    return games
+                print(f'  Yahoo keys: {list(data.keys())[:8]}')
+            else:
+                print('  No known marker in Yahoo page')
+    except Exception as e:
+        print(f'Yahoo error: {e}')
+
+    # NCAA.com — log what markers exist so we can adapt
+    for url in ['https://www.ncaa.com/championships/softball/d1',
+                'https://www.ncaa.com/sports/softball/d1']:
         try:
-            r = requests.get(url, headers=page_headers, timeout=15)
-            print(f'NCAA page {url.split(".com")[1]}: HTTP {r.status_code}')
+            r = requests.get(url, headers={**page_headers, 'Referer': 'https://www.ncaa.com/'},
+                             timeout=15)
+            print(f'NCAA {url.split(".com")[1]}: HTTP {r.status_code}')
             if not r.ok:
                 continue
             text = r.text
-            # Next.js apps embed full page data in a __NEXT_DATA__ script tag
-            idx = text.find('__NEXT_DATA__')
-            if idx == -1:
-                print('  No __NEXT_DATA__ found')
-                continue
-            start = text.find('>', idx) + 1
-            end = text.find('</script>', start)
-            if start <= 0 or end <= 0:
-                continue
-            try:
-                data = json.loads(text[start:end])
-                games = _search_ncaa_games(data)
-                if games:
-                    print(f'  → {len(games)} games')
-                    return games
-                print('  No game list found in NCAA data')
-            except Exception as e:
-                print(f'  NCAA JSON parse error: {e}')
+            # Log which JS data markers are present so we know what to target
+            for marker in ['__NEXT_DATA__', '__REDUX_STATE__', '__INITIAL_STATE__',
+                           'window.__data', 'window.initialData', 'window.pageData']:
+                if marker in text:
+                    print(f'  Found marker: {marker}')
         except Exception as e:
-            print(f'NCAA page error: {e}')
+            print(f'NCAA error: {e}')
+
     return []
 
 

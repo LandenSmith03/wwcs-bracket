@@ -517,6 +517,8 @@ function closeLoginModal(){document.getElementById('loginModalBg').classList.rem
 async function sendMagicLink(){
   const email=document.getElementById('loginEmail').value.trim();
   if(!email||!email.includes('@')){document.getElementById('loginEmail').style.borderColor='var(--red)';return;}
+  const btn=document.querySelector('#loginFormDiv .btn-red');
+  if(btn){btn.disabled=true;btn.textContent='Sending…';}
   try{
     const r=await fetch(SUPA_URL+'/auth/v1/otp',{
       method:'POST',
@@ -526,7 +528,10 @@ async function sendMagicLink(){
     if(!r.ok)throw new Error();
     document.getElementById('loginFormDiv').style.display='none';
     document.getElementById('loginSentDiv').style.display='block';
-  }catch(e){showToast('Could not send link — try again',true);}
+  }catch(e){
+    if(btn){btn.disabled=false;btn.textContent='Send Link ✉️';}
+    showToast('Could not send link — try again',true);
+  }
 }
 
 function signOut(){
@@ -613,7 +618,10 @@ async function restoreUserData(){
       if(gs&&gs[0]){currentGroup={id:gs[0].id,name:gs[0].name};localStorage.setItem('eid_'+currentGroup.id,myEntryId);}
     }
     render();
-    if(currentGroup){await loadGroupEntries();renderGroupTab();}
+    if(currentGroup){
+      await loadGroupEntries();
+      if(document.getElementById('tab-group').classList.contains('active')) renderGroupTab();
+    }
     showToast('Welcome back, '+myName+' 👋');
   }catch(e){console.error('restoreUserData',e);}
 }

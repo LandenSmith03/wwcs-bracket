@@ -162,8 +162,16 @@ def _espn_events_from_page(content, label):
             evs = (data.get('page', {})
                        .get('content', {})
                        .get('scoreboard', {})
-                       .get('events', []))
-            print(f'  {label}: {len(evs)} events via page.content.scoreboard.events')
+                       .get('evts', []))
+            print(f'  {label}: {len(evs)} events via page.content.scoreboard.evts')
+            if evs:
+                e0 = evs[0]
+                print(f'  First event keys: {list(e0.keys())}')
+                comp0 = (e0.get('competitions') or e0.get('cmptnrs') or [{}])[0]
+                print(f'  First comp keys: {list(comp0.keys())}')
+                cs = comp0.get('competitors') or comp0.get('cmpttrs') or []
+                if cs:
+                    print(f'  First competitor keys: {list(cs[0].keys())}')
             return evs
         except Exception as e:
             print(f'  {label} JSON parse error: {e}')

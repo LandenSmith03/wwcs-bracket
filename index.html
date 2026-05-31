@@ -931,10 +931,11 @@ function setStatus(cls,msg,src){
 async function fetchAll(){
   liveData={};
   officialW={...VERIFIED};
-  // Supabase admin results override VERIFIED
+  // Load finalized results from Supabase (written by GitHub Action every 10 min)
+  let supaCount=0;
   try{
     const rows=await supa('GET','results?select=game_id,winner');
-    if(Array.isArray(rows)) rows.forEach(r=>{if(r.winner)officialW[r.game_id]=r.winner;});
+    if(Array.isArray(rows)) rows.forEach(r=>{if(r.winner){officialW[r.game_id]=r.winner;supaCount++;}});
   }catch(e){}
 
   const EM={'texas tech':'textech','mississippi state':'msstate','mississippi st':'msstate','texas':'texas','tennessee':'tennessee','alabama':'alabama','ucla':'ucla','nebraska':'nebraska','arkansas':'arkansas'};
@@ -1005,11 +1006,15 @@ async function fetchAll(){
   if(totalFound>0){
     document.getElementById('livePill').classList.toggle('on',totalLive>0);
     setStatus(srcLabel==='NCAA'?'hi':'warn',totalLive>0?`● ${srcLabel} live`:`${srcLabel} scores loaded`,srcLabel);
-    render(); return;
+  } else if(Object.keys(officialW).length>0){
+    // Supabase (GitHub Action) or VERIFIED has results — show clean status
+    document.getElementById('livePill').classList.remove('on');
+    setStatus('hi','Scores updated','Admin');
+  } else {
+    document.getElementById('statusTxt').innerHTML=`<span class="warn" style="font-size:10px">${diag.join(' | ')}</span>`;
+    document.getElementById('srcBadge').textContent='';
+    document.getElementById('lastUp').textContent='Updated '+new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
   }
-  document.getElementById('statusTxt').innerHTML=`<span class="warn" style="font-size:10px">${diag.join(' | ')}</span>`;
-  document.getElementById('srcBadge').textContent='';
-  document.getElementById('lastUp').textContent='Updated '+new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
   render();
 }
 

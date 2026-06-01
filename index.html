@@ -114,18 +114,44 @@ html, body { min-height: 100%; background: var(--off); color: var(--text); font-
 /* Section labels */
 .bkt-section-label {
   font-family: 'Bebas Neue', var(--fh);
-  font-size: 16px; letter-spacing: .12em; color: var(--navy);
-  margin-bottom: 6px; margin-top: 16px;
-  padding-bottom: 4px;
-  border-bottom: 2px solid var(--red);
-  display: inline-block;
+  font-size: 17px; letter-spacing: .14em; color: var(--navy);
+  margin-bottom: 10px; margin-top: 20px;
+  padding: 6px 12px 6px 10px;
+  background: linear-gradient(90deg, rgba(200,15,20,.08) 0%, transparent 100%);
+  border-left: 4px solid var(--red);
+  border-radius: 0 var(--r) var(--r) 0;
+  display: flex; align-items: center; gap: 7px;
 }
 .bkt-section-label:first-child { margin-top: 0; }
+.bkt-section-label::before { content: '🥎'; font-size: 13px; }
 .round-label {
   font-family: var(--fh); font-size: 9px; font-weight: 600;
   letter-spacing: .1em; text-transform: uppercase;
   color: var(--text3); text-align: center; padding-bottom: 5px;
 }
+.mob-sec {
+  font-family: 'Bebas Neue', var(--fh); font-size: 16px; letter-spacing: .14em;
+  color: var(--navy); margin: 18px 0 8px;
+  padding: 6px 12px 6px 10px;
+  background: linear-gradient(90deg, rgba(200,15,20,.08) 0%, transparent 100%);
+  border-left: 4px solid var(--red);
+  border-radius: 0 var(--r) var(--r) 0;
+  display: flex; align-items: center; gap: 7px;
+}
+.mob-sec::before { content: '🥎'; font-size: 12px; }
+
+/* My Brackets table */
+.brackets-table { width: 100%; border-collapse: collapse; font-family: var(--fb); font-size: 14px; }
+.brackets-table thead tr { background: var(--navy); color: var(--white); }
+.brackets-table thead th { font-family: var(--fh); font-size: 11px; letter-spacing: .1em; text-transform: uppercase; padding: 10px 14px; text-align: left; font-weight: 600; }
+.brackets-table tbody tr { border-bottom: 1.5px solid var(--border); transition: background .12s; }
+.brackets-table tbody tr:last-child { border-bottom: none; }
+.brackets-table tbody tr:hover { background: rgba(200,15,20,.05); }
+.brackets-table td { padding: 12px 14px; color: var(--text); vertical-align: middle; }
+.brackets-table td.score-cell { font-family: var(--fh); font-weight: 700; color: var(--navy); font-size: 15px; white-space: nowrap; }
+.brackets-table td.date-cell { color: var(--text2); font-size: 13px; white-space: nowrap; }
+.brackets-table td.action-cell { text-align: right; white-space: nowrap; }
+.brackets-table-wrap { border: 1.5px solid var(--border); border-radius: var(--r2); overflow: hidden; }
 
 /* A "row" of rounds side by side */
 .round-row { display: flex; align-items: flex-start; gap: 0; }
@@ -669,17 +695,21 @@ function renderMyBrackets(){
       list.innerHTML='<p style="color:var(--text2);text-align:center;padding:48px 0;font-size:14px">No brackets yet — create your first one!</p>';
       return;
     }
+    const tableWrap=document.createElement('div');tableWrap.className='brackets-table-wrap';
+    const table=document.createElement('table');table.className='brackets-table';
+    table.innerHTML='<thead><tr><th>Name</th><th>Score</th><th>Submitted</th><th></th></tr></thead>';
+    const tbody=document.createElement('tbody');
     myEntries.forEach(entry=>{
       const score=calcScore(entry.picks||{});
-      const card=document.createElement('div');
-      card.style.cssText='background:var(--card);border:1.5px solid var(--border);border-radius:var(--r2);padding:14px 16px;margin-bottom:10px;display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap';
-      const info=document.createElement('div');
       const date=new Date(entry.submitted_at).toLocaleDateString([],{month:'short',day:'numeric'});
-      info.innerHTML=`<div style="font-family:var(--fh);font-weight:700;font-size:15px;color:var(--navy)">${entry.name}</div><div style="font-size:12px;color:var(--text2);margin-top:3px">Submitted ${date} &middot; <strong>${score} / ${maxPts()} pts</strong></div>`;
-      const btn=document.createElement('button');btn.className='btn-navy';btn.textContent='View';
+      const tr=document.createElement('tr');
+      tr.innerHTML=`<td><strong>${entry.name}</strong></td><td class="score-cell">${score} / ${maxPts()} pts</td><td class="date-cell">${date}</td><td class="action-cell"></td>`;
+      const btn=document.createElement('button');btn.className='btn-navy';btn.textContent='View';btn.style.fontSize='12px';btn.style.padding='6px 14px';
       btn.onclick=()=>viewEntry(entry);
-      card.appendChild(info);card.appendChild(btn);list.appendChild(card);
+      tr.querySelector('.action-cell').appendChild(btn);
+      tbody.appendChild(tr);
     });
+    table.appendChild(tbody);tableWrap.appendChild(table);list.appendChild(tableWrap);
   } else {
     mv.style.display='none';pv.style.display='block';
     const backBtn=document.getElementById('backToBracketsBtn');
@@ -1511,7 +1541,7 @@ function buildDesktop(){
   bktAWrap.style.cssText='display:flex;flex-direction:column;margin-bottom:0';
 
   const bktALbl=document.createElement('div');
-  bktALbl.className='bkt-section-label';bktALbl.textContent='Bracket A';
+  bktALbl.className='bkt-section-label';bktALbl.textContent='Bracket A — Winner\'s Side';
   bktAWrap.appendChild(bktALbl);
 
   // WINNER'S ROW A: G1+G2 → connector → G7 → connector → (to G11)
@@ -1600,7 +1630,7 @@ function buildDesktop(){
   champWrap.style.cssText='display:flex;flex-direction:column;flex-shrink:0;margin-left:20px;padding-left:20px;border-left:2px solid var(--red)';
 
   const champTitleLbl=document.createElement('div');
-  champTitleLbl.className='bkt-section-label';champTitleLbl.style.marginTop='0';champTitleLbl.textContent='Championship';
+  champTitleLbl.className='bkt-section-label';champTitleLbl.style.marginTop='0';champTitleLbl.textContent='Championship Series';
   champWrap.appendChild(champTitleLbl);
 
   // Trophy box
@@ -1632,7 +1662,7 @@ function buildDesktop(){
   bktBWrap.style.cssText='display:flex;flex-direction:column;margin-top:24px';
 
   const bktBLbl=document.createElement('div');
-  bktBLbl.className='bkt-section-label';bktBLbl.textContent='Bracket B';
+  bktBLbl.className='bkt-section-label';bktBLbl.textContent='Bracket B — Winner\'s Side';
   bktBWrap.appendChild(bktBLbl);
 
   const winRowB=document.createElement('div');

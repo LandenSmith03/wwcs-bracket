@@ -143,15 +143,16 @@ html, body { min-height: 100%; background: var(--off); color: var(--text); font-
 /* My Brackets table */
 .brackets-table { width: 100%; border-collapse: collapse; font-family: var(--fb); font-size: 14px; }
 .brackets-table thead tr { background: var(--navy); color: var(--white); }
-.brackets-table thead th { font-family: var(--fh); font-size: 11px; letter-spacing: .1em; text-transform: uppercase; padding: 10px 14px; text-align: left; font-weight: 600; }
-.brackets-table tbody tr { border-bottom: 1.5px solid var(--border); transition: background .12s; }
+.brackets-table thead th { font-family: var(--fh); font-size: 11px; letter-spacing: .1em; text-transform: uppercase; padding: 11px 16px; text-align: left; font-weight: 600; }
+.brackets-table tbody tr { border-bottom: 1.5px solid var(--border); transition: background .12s; background: var(--white); }
+.brackets-table tbody tr:nth-child(even) { background: var(--off); }
 .brackets-table tbody tr:last-child { border-bottom: none; }
-.brackets-table tbody tr:hover { background: rgba(200,15,20,.05); }
-.brackets-table td { padding: 12px 14px; color: var(--text); vertical-align: middle; }
-.brackets-table td.score-cell { font-family: var(--fh); font-weight: 700; color: var(--navy); font-size: 15px; white-space: nowrap; }
+.brackets-table tbody tr:hover { background: rgba(200,15,20,.07); }
+.brackets-table td { padding: 13px 16px; color: var(--text); vertical-align: middle; }
+.brackets-table td.score-cell { font-family: var(--fh); font-weight: 700; color: var(--red); font-size: 16px; white-space: nowrap; }
 .brackets-table td.date-cell { color: var(--text2); font-size: 13px; white-space: nowrap; }
 .brackets-table td.action-cell { text-align: right; white-space: nowrap; }
-.brackets-table-wrap { border: 1.5px solid var(--border); border-radius: var(--r2); overflow: hidden; }
+.brackets-table-wrap { border: 3px solid var(--navy); border-radius: var(--r2); overflow: hidden; box-shadow: 0 4px 16px rgba(10,22,40,0.13); }
 
 /* A "row" of rounds side by side */
 .round-row { display: flex; align-items: flex-start; gap: 0; }
